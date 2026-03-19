@@ -53,7 +53,8 @@ const Sidebar = ({ activeMenu, setActiveMenu, onMobileClose }) => {
 
       {/* Footer */}
       <div className="mt-6 pt-6 border-t border-gray-100 text-center">
-        <div className="text-xs text-gray-400 mb-2">พัฒนาโดย ภาคีนกฟีนิกซ์</div>
+        <div className="text-xs text-gray-400 mb-1">พัฒนาโดย นายอำนาจ เสมอวงศ์</div>
+        <div className="text-xs text-gray-400 mb-2">ศสพ.ภาคใต้</div>
         <div className="flex justify-center gap-3 text-gray-400">
           <a href="https://www.facebook.com/kruarm55" target="_blank" rel="noopener noreferrer" className="hover:text-blue-600 transition" title="Facebook"><Facebook size={16} /></a>
           <a href="https://www.youtube.com/@kruarm55" target="_blank" rel="noopener noreferrer" className="hover:text-red-600 transition" title="Youtube"><Youtube size={16} /></a>

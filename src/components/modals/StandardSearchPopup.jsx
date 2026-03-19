@@ -3,9 +3,9 @@ import { X, Sparkles, RotateCcw, Send, Paperclip, Loader2, FileDown } from 'luci
 import ChatBubble from '../common/ChatBubble';
 import { SYSTEM_PROMPT_STANDARD_ANALYSIS } from '../../constants/prompts';
 import { cleanAndParseJSON } from '../../utils/jsonParser';
-import { API_KEY } from '../../hooks/useGeminiApi';
+import { createProvider } from '../../providers/index';
 
-const StandardSearchPopup = ({ isOpen, onClose }) => {
+const StandardSearchPopup = ({ isOpen, onClose, providerId, apiKey }) => {
   const [messages, setMessages] = useState([]);
   const [step, setStep] = useState('init');
   const [inputValue, setInputValue] = useState('');
@@ -105,21 +105,14 @@ const StandardSearchPopup = ({ isOpen, onClose }) => {
     const reader = new FileReader();
     reader.onloadend = async () => {
       try {
-        const base64Data = reader.result.split(',')[1];
         const mimeType = file.type === 'application/pdf' ? 'application/pdf' : 'image/jpeg';
-        const response = await fetch(
-          `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${API_KEY}`,
-          {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              contents: [{ role: 'user', parts: [{ text: SYSTEM_PROMPT_STANDARD_ANALYSIS }, { inlineData: { mimeType, data: base64Data } }] }],
-              generationConfig: { responseMimeType: 'application/json' },
-            }),
-          }
+        const fileType = file.type === 'application/pdf' ? 'pdf' : 'image';
+        const provider = createProvider(providerId, apiKey);
+        const text = await provider.sendMessage(
+          SYSTEM_PROMPT_STANDARD_ANALYSIS,
+          [{ type: fileType, data: reader.result, mimeType }],
+          { requireJson: true }
         );
-        const result = await response.json();
-        const text = result.candidates?.[0]?.content?.parts?.[0]?.text;
         if (text) {
           const data = cleanAndParseJSON(text);
           if (data?.standards) {

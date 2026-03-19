@@ -3,11 +3,12 @@ import { Target, CheckCircle, Sparkles, Loader2, Check, RefreshCw, ArrowRight, U
 import FileUploadZone from '../common/FileUploadZone';
 import ExportButtons from '../common/ExportButtons';
 import { useFileUpload, buildFileParts } from '../../hooks/useFileUpload';
-import { useGeminiApi } from '../../hooks/useGeminiApi';
+import { useAiApi } from '../../hooks/useAiApi';
 import { SYSTEM_PROMPT_LO } from '../../constants/prompts';
 import { printToPdf, createWordDoc } from '../../utils/exportHelpers';
 
 const LearningOutcomesModule = ({
+  providerId, apiKey,
   unitDivisionPlan, generatedPlan,
   loResults, setLoResults,
   formData, onError, onNavigate,
@@ -15,7 +16,7 @@ const LearningOutcomesModule = ({
   const hasPreviousData = !!(unitDivisionPlan && generatedPlan);
   const { file: unitsFile, handleUpload: handleUnitsUpload } = useFileUpload({ onError });
   const { file: analysisFile, handleUpload: handleAnalysisUpload } = useFileUpload({ onError });
-  const { callApi, loading, loadingText } = useGeminiApi();
+  const { callApi, loading, loadingText } = useAiApi(providerId, apiKey);
 
   const generate = async () => {
     if (!hasPreviousData && (!unitsFile || !analysisFile)) {

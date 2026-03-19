@@ -3,7 +3,7 @@ import { Lightbulb, CheckCircle, Sparkles, Loader2, Check, ChevronLeft, ChevronR
 import FileUploadZone from '../common/FileUploadZone';
 import ExportButtons from '../common/ExportButtons';
 import { useFileUpload, buildFileParts } from '../../hooks/useFileUpload';
-import { useGeminiApi } from '../../hooks/useGeminiApi';
+import { useAiApi } from '../../hooks/useAiApi';
 import { SYSTEM_PROMPT_CONCEPT } from '../../constants/prompts';
 import { printToPdf, createWordDoc } from '../../utils/exportHelpers';
 
@@ -11,13 +11,14 @@ const STEPS = ['หลักสูตรรายวิชา', 'ผลการ
 const FILE_KEYS = ['syllabus', 'analysis', 'units', 'outcomes', 'competencies', 'objectives'];
 
 const ConceptModule = ({
+  providerId, apiKey,
   formData, generatedPlan, unitDivisionPlan, loResults, compResults, objResults,
   conceptResults, setConceptResults,
   onError,
 }) => {
   const hasInternal = !!(formData.courseCode && generatedPlan && unitDivisionPlan && loResults && compResults && objResults);
   const [conceptStep, setConceptStep] = useState(1);
-  const { callApi, loading } = useGeminiApi();
+  const { callApi, loading } = useAiApi(providerId, apiKey);
 
   // 6 file upload hooks for manual mode
   const fileHooks = FILE_KEYS.map(() => useFileUpload({ onError }));

@@ -1,8 +1,19 @@
 import React from 'react';
-import { Youtube, Scissors } from 'lucide-react';
+import { Youtube, Scissors, Key, CheckCircle } from 'lucide-react';
 
-const TopToolsBar = ({ onOpenPdfTool }) => (
+const TopToolsBar = ({ onOpenPdfTool, onOpenApiKeyModal, hasApiKey, providerName }) => (
   <div className="flex justify-end mb-4 gap-3">
+    <button
+      onClick={onOpenApiKeyModal}
+      className={`px-3 py-2 rounded-lg text-sm font-medium transition shadow-sm flex items-center gap-1.5 border ${
+        hasApiKey
+          ? 'bg-green-50 border-green-200 text-green-700 hover:bg-green-100'
+          : 'bg-orange-50 border-orange-300 text-orange-700 hover:bg-orange-100 animate-pulse'
+      }`}
+    >
+      {hasApiKey ? <CheckCircle size={14} /> : <Key size={14} />}
+      {hasApiKey ? providerName : 'ตั้งค่า API Key'}
+    </button>
     <a
       href="https://youtu.be/FjoTMFQMmnI"
       target="_blank"

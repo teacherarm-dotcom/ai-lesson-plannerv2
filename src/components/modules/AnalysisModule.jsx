@@ -7,7 +7,7 @@ import {
 import MarkdownTableRenderer from '../common/MarkdownTableRenderer';
 import UnitTableWithTooltip from '../common/UnitTableWithTooltip';
 import ExportButtons from '../common/ExportButtons';
-import { useGeminiApi } from '../../hooks/useGeminiApi';
+import { useAiApi } from '../../hooks/useAiApi';
 import { SYSTEM_PROMPT_EXTRACTION, SYSTEM_PROMPT_STANDARD_OCR } from '../../constants/prompts';
 import { buildAnalysisPrompt, buildUnitDivisionPrompt } from '../../constants/promptBuilders';
 import { getCourseLevel, getWeeklyHours, getTheoryPractice, getWeeksFromCode } from '../../utils/courseHelpers';
@@ -16,6 +16,7 @@ import { printToPdf, createWordDoc } from '../../utils/exportHelpers';
 import { cleanAndParseJSON } from '../../utils/jsonParser';
 
 const AnalysisModule = ({
+  providerId, apiKey,
   formData, setFormData,
   generatedPlan, setGeneratedPlan,
   unitDivisionPlan, setUnitDivisionPlan,
@@ -27,7 +28,7 @@ const AnalysisModule = ({
   const [standardContent, setStandardContent] = useState('');
   const [standardFileName, setStandardFileName] = useState('');
   const [dividingUnits, setDividingUnits] = useState(false);
-  const { callApi, loading, loadingText } = useGeminiApi();
+  const { callApi, loading, loadingText } = useAiApi(providerId, apiKey);
 
   useEffect(() => {
     if (!window.mammoth) {
@@ -113,8 +114,9 @@ const AnalysisModule = ({
       } else {
         throw new Error('Failed to parse');
       }
-    } catch {
-      onError('เกิดข้อผิดพลาดในการอ่านไฟล์ หรือไฟล์ไม่ชัดเจน');
+    } catch (err) {
+      console.error('Extraction Error:', err);
+      onError(`เกิดข้อผิดพลาด: ${err.message || 'ไม่สามารถอ่านไฟล์ได้'}`);
     }
   };
 

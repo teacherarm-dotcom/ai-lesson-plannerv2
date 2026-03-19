@@ -3,11 +3,12 @@ import { Zap, CheckCircle, Sparkles, Loader2, Check, ArrowRight, Upload, FileTex
 import FileUploadZone from '../common/FileUploadZone';
 import ExportButtons from '../common/ExportButtons';
 import { useFileUpload, buildFileParts } from '../../hooks/useFileUpload';
-import { useGeminiApi } from '../../hooks/useGeminiApi';
+import { useAiApi } from '../../hooks/useAiApi';
 import { SYSTEM_PROMPT_COMPETENCY } from '../../constants/prompts';
 import { printToPdf, createWordDoc } from '../../utils/exportHelpers';
 
 const CompetencyModule = ({
+  apiKey,
   loResults, unitDivisionPlan,
   compResults, setCompResults,
   formData, onError, onNavigate,
@@ -15,7 +16,7 @@ const CompetencyModule = ({
   const hasPreviousData = !!(loResults && unitDivisionPlan);
   const [selectedLevel, setSelectedLevel] = useState('ปวช.');
   const { file: compFile, handleUpload: handleCompUpload } = useFileUpload({ onError });
-  const { callApi, loading, loadingText } = useGeminiApi();
+  const { callApi, loading, loadingText } = useAiApi(providerId, apiKey);
 
   useEffect(() => {
     setSelectedLevel(formData.courseCode?.startsWith('3') ? 'ปวส.' : 'ปวช.');

@@ -3,7 +3,7 @@ import { ListChecks, CheckCircle, Sparkles, Loader2, Check, ArrowRight, ChevronL
 import FileUploadZone from '../common/FileUploadZone';
 import ExportButtons from '../common/ExportButtons';
 import { useFileUpload, buildFileParts } from '../../hooks/useFileUpload';
-import { useGeminiApi } from '../../hooks/useGeminiApi';
+import { useAiApi } from '../../hooks/useAiApi';
 import { SYSTEM_PROMPT_OBJECTIVES } from '../../constants/prompts';
 import { printToPdf, createWordDoc } from '../../utils/exportHelpers';
 
@@ -14,13 +14,14 @@ const UPLOAD_STEPS = [
 ];
 
 const ObjectivesModule = ({
+  providerId, apiKey,
   formData, compResults, loResults,
   objResults, setObjResults,
   onError, onNavigate,
 }) => {
   const hasInternal = !!(formData.courseCode && compResults && loResults);
   const [objStep, setObjStep] = useState(1);
-  const { callApi, loading, loadingText } = useGeminiApi();
+  const { callApi, loading, loadingText } = useAiApi(providerId, apiKey);
 
   // File hooks for manual upload mode
   const syllabusUpload = useFileUpload({ onError });
