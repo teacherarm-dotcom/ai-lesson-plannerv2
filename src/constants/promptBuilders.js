@@ -1,0 +1,110 @@
+import { getTheoryPractice, getWeeksFromCode, getLevelLabel } from '../utils/courseHelpers';
+
+/**
+ * Build the main analysis prompt from course form data + optional standard content.
+ */
+export const buildAnalysisPrompt = (data, standardContent) => {
+  const weeks = getWeeksFromCode(data.courseCode);
+  const level = getLevelLabel(data.courseCode);
+  const { theory, practice } = getTheoryPractice(data.ratio);
+  const hoursPerWeek = theory + practice;
+  const totalHours = hoursPerWeek > 0 ? hoursPerWeek * weeks : 0;
+
+  const timeInfo =
+    totalHours > 0
+      ? `(คำนวณจาก ท-ป-น: ${theory}-${practice}-${data.credits || '?'} = เรียน ${hoursPerWeek} ชม./สัปดาห์ x ${weeks} สัปดาห์ = รวม ${totalHours} ชั่วโมง)`
+      : `(กรุณาคำนวณเวลาตามมาตรฐาน ${level} ${weeks} สัปดาห์)`;
+
+  const standardSection = standardContent
+    ? `\n\n**ข้อมูลจากมาตรฐานอาชีพที่แนบมา (Professional Standard Info):**\n${standardContent}\n\nคำสั่งพิเศษ: ให้บูรณาการ "ผลลัพธ์การเรียนรู้รายวิชา" ร่วมกับ "มาตรฐานอาชีพ" อย่างลึกซึ้ง โดยพิจารณาว่าส่วนใดควรเป็นแกนหลัก`
+    : `\n\nคำสั่งพิเศษ: วิเคราะห์จากผลลัพธ์การเรียนรู้รายวิชา เพื่อจำลองเป็นงาน (Job) และ หน้าที่ (Duty) ในสถานประกอบการ`;
+
+  return `Role: ท่านคือผู้เชี่ยวชาญด้านการออกแบบแผนการจัดการเรียนรู้ฐานสมรรถนะ เน้นผู้เรียนเป็นสำคัญด้านอาชีวศึกษา (สอศ.) หลักสูตร 2567
+
+Task: ออกแบบ "ตารางวิเคราะห์หน่วยการเรียนรู้ (Analysis Table)" สำหรับรายวิชา ${data.courseCode} ${data.courseName}
+
+ระดับชั้น: ${level} (ระยะเวลาเรียน ${weeks} สัปดาห์)
+เวลาเรียนรวม: ${totalHours > 0 ? totalHours : 'ไม่ระบุ'} ชั่วโมง ${timeInfo}
+
+ข้อมูลรายวิชา (Course Input):
+* อ้างอิงมาตรฐานหลักสูตร: ${data.standardRef || 'ไม่ระบุ'}
+* ผลลัพธ์การเรียนรู้: ${data.learningOutcomes}
+* จุดประสงค์: ${data.objectives}
+* สมรรถนะ: ${data.competencies}
+* คำอธิบาย: ${data.description}
+${standardSection}
+
+หลักการวิเคราะห์และออกแบบ (Principles):
+1. Job-Duty-Task Analysis:
+   - Job (งานหลัก): สำคัญมาก: ให้วิเคราะห์งานหลักโดยยึด "ผลลัพธ์การเรียนรู้รายวิชา" และ "มาตรฐานอาชีพ" (ถ้ามี) เป็นตัวตั้ง
+   * Constraint: ต้องมี Job (งานหลัก) จำนวนระหว่าง 4 ถึง 9 งาน (ห้ามต่ำกว่า 4 และห้ามเกิน 9)
+   * Duty (หน้าที่/หน่วยการเรียนรู้): แบ่ง Job ออกเป็นหน่วยย่อย
+   * Task (งานย่อย/ขั้นตอนปฏิบัติ): แตกย่อย Duty เป็นขั้นตอนการปฏิบัติงานจริง
+2. Holistic Job Integration (บูรณาการงานครบวงจร):
+   - ในการกำหนดงาน (Job) ให้บูรณาการงานสนับสนุนที่จำเป็น เช่น การดูแลรักษาเครื่องมือ (Maintenance), การคำนวณต้นทุน (Costing), การเก็บรักษา (Storage), ความปลอดภัย (Safety) เข้าไปในเนื้องานหลักเสมอ
+   * ห้าม แยกงานสนับสนุนเหล่านี้เป็น Job หรือ Unit ต่างหาก
+   * Goal: เมื่อผู้เรียนเรียนจบในแต่ละหน่วย ต้องสามารถประกอบอาชีพในงานนั้นๆ ได้ทันทีแบบมืออาชีพ (Job Ready) ครบกระบวนการตั้งแต่เตรียม-ทำ-เก็บ
+3. Task Constraint: แต่ละ Duty ควรมี Task ที่ครอบคลุมขั้นตอนการทำงานจริง
+4. Integration: นำความรู้ (Knowledge) และ ทักษะ (Skills) จากคำอธิบายรายวิชาและมาตรฐานอาชีพ มาใส่ให้ตรงกับ Task นั้นๆ
+5. Time Management: จัดสรรเวลาให้ครบ ${totalHours} ชั่วโมง โดยต้องหารด้วย ${hoursPerWeek} ลงตัว
+
+รูปแบบการแสดงผล (Output Format) - Markdown Table Only:
+| ลำดับงาน (Job No.) | ชื่องานหลัก (Job) / หน้าที่ (Duty) | งานย่อย (Task) | ความรู้ (Knowledge) | ทักษะ (Skills) | เวลา (ชม.) |
+
+Formatting Rules:
+* ใส่เลขข้อ นำหน้าทุกบรรทัดในช่อง Task, Knowledge, Skills
+* ใช้ <br> คั่นระหว่างบรรทัด
+* ห้ามมีหน่วยทฤษฎีล้วน ให้บูรณาการเข้ากับการปฏิบัติ`;
+};
+
+/**
+ * Build the unit-division prompt from an analysis table.
+ */
+export const buildUnitDivisionPrompt = (analysisTable, weeks, theoryHours, practiceHours, courseDesc) => {
+  return `Role: ผู้เชี่ยวชาญด้านการจัดทำแผนการสอนอาชีวศึกษา
+
+Task: จาก "ตารางวิเคราะห์งาน (Analysis Table)" ที่ให้มาด้านล่างนี้ ให้ทำการ "แบ่งหน่วยการเรียนรู้ (Learning Units)" เพื่อใช้ในการจัดการเรียนการสอนจริง
+
+Duration: ${weeks} สัปดาห์
+Structure Per Week: Theory ${theoryHours} hours, Practice ${practiceHours} hours. (Total ${theoryHours + practiceHours} hours/week)
+Course Description: ${courseDesc}
+
+Input Data (Analysis Table):
+${analysisTable}
+
+หลักการแบ่งหน่วยการเรียนรู้ (Unit Division Principles):
+1. Granularity & Artifacts (การซอยหน่วยย่อย):
+   - หน่วยการเรียนรู้ ไม่จำเป็น ต้องเท่ากับจำนวนงานหลัก (Job)
+   * ให้พิจารณาจากชิ้นงานย่อย (Sub-artifacts) หรือเรื่องหลัก (Main Topics) ในแต่ละ Job
+   * สำคัญ: หาก Job ใดมีเนื้อหามาก หรือมีชิ้นงานย่อยหลายชิ้น ให้แยกเป็นหลายหน่วยการเรียนรู้ได้ เพื่อให้เหมาะสมกับการเรียนการสอน
+   * ตัวอย่าง: "งานติดตั้งระบบไฟฟ้า" อาจแยกเป็น หน่วยที่ 1 การเดินสาย, หน่วยที่ 2 การติดตั้งอุปกรณ์ป้องกัน, หน่วยที่ 3 การตรวจสอบ
+
+2. Naming Convention (กฎการตั้งชื่อหน่วย - สำคัญมาก):
+   * ห้าม ขึ้นต้นชื่อหน่วยด้วยคำว่า "การ" หรือ "ความรู้เกี่ยวกับ" โดยเด็ดขาด
+   * ให้ใช้ คำกริยา (Action Verb) นำหน้าชื่อหน่วยทันที
+   * ตัวอย่างที่ถูกต้อง: "ติดตั้งเครื่องปรับอากาศ", "ซ่อมบำรุงเครื่องยนต์", "ตรวจสอบรอยเชื่อม"
+   * ตัวอย่างที่ผิด: "การติดตั้ง...", "การซ่อมบำรุง...", "ความรู้เบื้องต้นเกี่ยวกับ..."
+
+3. Time Constraint (ข้อจำกัดเวลา):
+   * Maximum Duration: 1 หน่วยการเรียนรู้ ไม่ควรใช้เวลาเกิน 3 สัปดาห์
+   * หากหน่วยใดเนื้อหาเยอะจนต้องใช้เวลาเกิน 3 สัปดาห์ ต้อง แบ่งซอยออกเป็นหน่วยย่อยเพิ่มอีก
+
+4. Time Calculation Rules (การคำนวณเวลา):
+   * คำนวณชั่วโมงทฤษฎี: = (จำนวนสัปดาห์ของหน่วยนั้น) x ${theoryHours}
+   * คำนวณชั่วโมงปฏิบัติ: = (จำนวนสัปดาห์ของหน่วยนั้น) x ${practiceHours}
+   * รวมชั่วโมง: = ทฤษฎี + ปฏิบัติ
+
+5. Content Generation:
+   * สร้างเนื้อหา "หัวข้อเรื่อง (Topics)" ในแต่ละหน่วย ให้ละเอียดและครอบคลุม
+   * Format: เขียนหัวข้อเรื่องเป็นข้อๆ (Bullet points)
+
+6. Content Only: หน่วยการเรียนรู้ต้องเป็นเนื้อหารายวิชา ห้าม สร้างหน่วยสุดท้ายเป็น "สรุปและการประเมินผล" หรือ "สอบปลายภาค" โดยเด็ดขาด
+
+รูปแบบการแสดงผล (Output Format) - Markdown Table Only:
+| หน่วยที่ | ชื่อหน่วยการเรียนรู้ | หัวข้อเรื่อง (Topics) | ทฤษฎี (ชม.) | ปฏิบัติ (ชม.) | รวม (ชม.) |
+
+Formatting Rules:
+* แสดงผลเฉพาะตาราง Markdown เท่านั้น
+* ช่อง หัวข้อเรื่อง (Topics) ให้ใช้ <br> หรือ - คั่นระหว่างหัวข้อ เพื่อให้แสดงผลหลายบรรทัดได้
+* ช่อง ชม. ใส่เฉพาะตัวเลข (เช่น 2, 4) ไม่ต้องใส่คำว่า ชม.`;
+};
