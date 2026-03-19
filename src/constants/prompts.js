@@ -15,8 +15,8 @@ Return ONLY a valid JSON object with no markdown formatting. The JSON structure 
   "ratio": "ท-ป-น (e.g., 2-2-3)",
   "standardRef": "อ้างอิงมาตรฐาน (ถ้ามี)",
   "learningOutcomes": "ผลลัพธ์การเรียนรู้ระดับวิชา (Copy full text)",
-  "objectives": "จุดประสงค์รายวิชา (Copy full text, format as a list with bullet points or numbers)",
-  "competencies": "สมรรถนะรายวิชา (Copy full text, format as a list with bullet points or numbers)",
+  "objectives": "จุดประสงค์รายวิชา (Copy full text, format as numbered list e.g. 1. xxx 2. xxx - NO blank lines between items)",
+  "competencies": "สมรรถนะรายวิชา (Copy full text, format as numbered list e.g. 1. xxx 2. xxx - NO blank lines between items)",
   "description": "คำอธิบายรายวิชา (Copy full text)"
 }
 If a field is not found, leave it as an empty string.`;

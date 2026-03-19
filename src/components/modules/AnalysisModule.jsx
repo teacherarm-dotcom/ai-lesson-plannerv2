@@ -106,7 +106,14 @@ const AnalysisModule = ({
         return;
       }
       if (data) {
-        const formatList = (str) => (str ? str.replace(/(\d+\.)/g, '\n$1').trim() : '');
+        const formatList = (str) => {
+          if (!str) return '';
+          // แยกแต่ละข้อด้วยเลข แล้วรวมกลับโดยไม่มีบรรทัดว่างคั่น
+          return str
+            .replace(/\n{2,}/g, '\n')           // ลบบรรทัดว่างซ้ำ
+            .replace(/\n?\s*(\d+\.)/g, '\n$1')   // ขึ้นบรรทัดใหม่ก่อนเลขข้อ (ไม่เว้นบรรทัด)
+            .trim();
+        };
         data.objectives = formatList(data.objectives);
         data.competencies = formatList(data.competencies);
         setFormData((p) => ({ ...p, ...data }));
