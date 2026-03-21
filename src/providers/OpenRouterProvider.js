@@ -1,6 +1,6 @@
 import { BaseProvider } from './BaseProvider';
 
-const OPENROUTER_API_KEY = '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';
+const OPENROUTER_API_KEY = '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';
 
 export class OpenRouterProvider extends BaseProvider {
   constructor() {
