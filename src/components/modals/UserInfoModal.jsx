@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { X, Download, Mail, User, Building2, MapPin, GraduationCap, Briefcase, Shield, Award, ChevronRight, ChevronLeft } from 'lucide-react';
 
 const STORAGE_KEY = 'user_info';
-const GOOGLE_SHEET_URL = '';
+const GOOGLE_SHEET_URL = 'https://script.google.com/macros/s/AKfycbyxjQPVEx1FGPOvkCZ43V4STKKhY6VCgodo-A25ykPGiCWaIJGxDe8IvWBvNXcP7GLz/exec';
 
 const PREFIXES = ['นาย', 'นาง', 'นางสาว', 'อื่นๆ'];
 
@@ -51,10 +51,22 @@ export const logDownloadToSheet = (userInfo, meta = {}) => {
 export const useDownloadWithUserInfo = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [pendingDownload, setPendingDownload] = useState(null);
-  const triggerDownload = (downloadFn) => {
-    if (getStoredUserInfo()) { downloadFn(); } else { setPendingDownload(() => downloadFn); setIsOpen(true); }
+  const triggerDownload = (downloadFn, meta) => {
+    const existing = getStoredUserInfo();
+    if (existing) {
+      logDownloadToSheet(existing, meta);
+      downloadFn();
+    } else {
+      setPendingDownload(() => downloadFn);
+      setIsOpen(true);
+    }
   };
-  const handleSubmit = (info) => { setStoredUserInfo(info); setIsOpen(false); if (pendingDownload) { pendingDownload(); setPendingDownload(null); } };
+  const handleSubmit = (info) => {
+    setStoredUserInfo(info);
+    logDownloadToSheet(info);
+    setIsOpen(false);
+    if (pendingDownload) { pendingDownload(); setPendingDownload(null); }
+  };
   const handleClose = () => { setIsOpen(false); setPendingDownload(null); };
   return { isOpen, triggerDownload, handleSubmit, handleClose };
 };
