@@ -35,6 +35,13 @@ const AnalysisModule = ({
   const [dividingUnits, setDividingUnits] = useState(false);
   const { callApi, loading, loadingText } = useAiApi(providerId, apiKey);
 
+  // Auto-generate unit division when returning to step 3 with plan but no units
+  useEffect(() => {
+    if (step === 3 && generatedPlan && !unitDivisionPlan && !dividingUnits) {
+      generateUnitDivision(generatedPlan, formData);
+    }
+  }, [step, generatedPlan, unitDivisionPlan, dividingUnits]);
+
   useEffect(() => {
     if (!window.mammoth) {
       const script = document.createElement('script');
