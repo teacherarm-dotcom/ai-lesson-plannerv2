@@ -203,7 +203,7 @@ const AnalysisModule = ({
   };
 
   // Wrap all downloads with user info check
-  const dl = triggerDownload || ((fn) => fn());
+  const dl = triggerDownload;
   const handleExportWord = () => dl(_doExportWord);
   const handleSavePdf = () => dl(_doSavePdf);
   const handleExportUnitsWord = () => dl(_doExportUnitsWord);

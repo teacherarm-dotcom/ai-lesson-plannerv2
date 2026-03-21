@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { X, Download, Mail, User, Building2, MapPin, GraduationCap, Briefcase, Shield, Award, ChevronRight, ChevronLeft } from 'lucide-react';
+import { trackDownload } from '../../utils/usageStats';
 
 const STORAGE_KEY = 'user_info';
 const GOOGLE_SHEET_URL = 'https://script.google.com/macros/s/AKfycbyxjQPVEx1FGPOvkCZ43V4STKKhY6VCgodo-A25ykPGiCWaIJGxDe8IvWBvNXcP7GLz/exec';
@@ -55,6 +56,7 @@ export const useDownloadWithUserInfo = () => {
     const existing = getStoredUserInfo();
     if (existing) {
       logDownloadToSheet(existing, meta);
+      trackDownload();
       downloadFn();
     } else {
       setPendingDownload(() => downloadFn);
@@ -64,6 +66,7 @@ export const useDownloadWithUserInfo = () => {
   const handleSubmit = (info) => {
     setStoredUserInfo(info);
     logDownloadToSheet(info);
+    trackDownload();
     setIsOpen(false);
     if (pendingDownload) { pendingDownload(); setPendingDownload(null); }
   };

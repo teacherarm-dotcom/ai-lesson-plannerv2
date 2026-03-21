@@ -14,7 +14,7 @@ const LearningOutcomesModule = ({
   formData, onError, onNavigate,
   triggerDownload,
 }) => {
-  const dl = triggerDownload || ((fn) => fn());
+  const dl = triggerDownload;
   const hasPreviousData = !!(unitDivisionPlan && generatedPlan);
   const { file: unitsFile, handleUpload: handleUnitsUpload } = useFileUpload({ onError });
   const { file: analysisFile, handleUpload: handleAnalysisUpload } = useFileUpload({ onError });

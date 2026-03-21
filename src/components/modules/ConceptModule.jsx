@@ -16,7 +16,7 @@ const ConceptModule = ({
   conceptResults, setConceptResults,
   onError, triggerDownload,
 }) => {
-  const dl = triggerDownload || ((fn) => fn());
+  const dl = triggerDownload;
   const hasInternal = !!(formData.courseCode && generatedPlan && unitDivisionPlan && loResults && compResults && objResults);
   const [conceptStep, setConceptStep] = useState(1);
   const { callApi, loading } = useAiApi(providerId, apiKey);
