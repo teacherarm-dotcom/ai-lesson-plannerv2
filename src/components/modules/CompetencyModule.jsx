@@ -12,7 +12,9 @@ const CompetencyModule = ({
   loResults, unitDivisionPlan,
   compResults, setCompResults,
   formData, onError, onNavigate,
+  triggerDownload,
 }) => {
+  const dl = triggerDownload || ((fn) => fn());
   const hasPreviousData = !!(loResults && unitDivisionPlan);
   const [selectedLevel, setSelectedLevel] = useState('ปวช.');
   const uploadHook = useFileUpload({ onError });
@@ -70,7 +72,7 @@ const CompetencyModule = ({
     }
   };
 
-  const exportWord = () => {
+  const _doExportWord = () => {
     if (!compResults) return;
     const rows = compResults.map((item, idx) => {
       const comps = Array.isArray(item.competencies) ? item.competencies : [];
@@ -82,8 +84,9 @@ const CompetencyModule = ({
       `<table><thead><tr><th width="10%">ที่</th><th width="30%">หน่วยการเรียนรู้</th><th>สมรรถนะประจำหน่วย</th></tr></thead><tbody>${rows}</tbody></table>`,
     );
   };
+  const exportWord = () => dl(_doExportWord);
 
-  const exportPdf = () => {
+  const _doExportPdf = () => {
     if (!compResults) return;
     const rows = compResults.map((item, idx) => {
       const comps = Array.isArray(item.competencies) ? item.competencies : [];
@@ -95,6 +98,7 @@ const CompetencyModule = ({
       `<table><thead><tr><th width="10%">ที่</th><th width="30%">หน่วยการเรียนรู้</th><th>สมรรถนะประจำหน่วย</th></tr></thead><tbody>${rows}</tbody></table>`,
     );
   };
+  const exportPdf = () => dl(_doExportPdf);
 
   // Safe render of competency items
   const renderCompetencyList = (competencies) => {

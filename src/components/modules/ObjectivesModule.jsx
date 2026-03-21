@@ -18,7 +18,9 @@ const ObjectivesModule = ({
   formData, compResults, loResults,
   objResults, setObjResults,
   onError, onNavigate,
+  triggerDownload,
 }) => {
+  const dl = triggerDownload || ((fn) => fn());
   const hasInternal = !!(formData.courseCode && compResults && loResults);
   const [objStep, setObjStep] = useState(1);
   const { callApi, loading, loadingText } = useAiApi(providerId, apiKey);
@@ -60,21 +62,23 @@ const ObjectivesModule = ({
     return `<ul style="margin:0;padding-left:15px;">${list.map((i) => `<li>${i}</li>`).join('')}</ul>`;
   };
 
-  const exportWord = () => {
+  const _doExportWord = () => {
     if (!objResults) return;
     const rows = objResults.map((item, idx) =>
       `<tr><td style="text-align:center;vertical-align:top;">${idx + 1}</td><td style="vertical-align:top;">${item.unitName}</td><td style="vertical-align:top;">${renderList(item.cognitive)}</td><td style="vertical-align:top;">${renderList(item.psychomotor)}</td><td style="vertical-align:top;">${renderList(item.affective)}</td><td style="vertical-align:top;">${renderList(item.application)}</td></tr>`
     ).join('');
     createWordDoc(`จุดประสงค์เชิงพฤติกรรม_${formData.courseCode}`, `<table><thead><tr><th rowspan="2">ที่</th><th rowspan="2">หน่วยการเรียนรู้</th><th colspan="4">จุดประสงค์เชิงพฤติกรรม</th></tr><tr><th>พุทธิพิสัย</th><th>ทักษะพิสัย</th><th>จิตพิสัย</th><th>การประยุกต์ใช้</th></tr></thead><tbody>${rows}</tbody></table>`);
   };
+  const exportWord = () => dl(_doExportWord);
 
-  const exportPdf = () => {
+  const _doExportPdf = () => {
     if (!objResults) return;
     const rows = objResults.map((item, idx) =>
       `<tr><td class="text-center">${idx + 1}</td><td>${item.unitName}</td><td><b>1. พุทธิพิสัย:</b>${renderList(item.cognitive)}<b>2. ทักษะพิสัย:</b>${renderList(item.psychomotor)}<b>3. จิตพิสัย:</b>${renderList(item.affective)}<b>4. การประยุกต์ใช้:</b>${renderList(item.application)}</td></tr>`
     ).join('');
     printToPdf(`จุดประสงค์เชิงพฤติกรรม ${formData.courseCode}`, `<table><thead><tr><th width="8%">ที่</th><th width="25%">หน่วยการเรียนรู้</th><th>จุดประสงค์เชิงพฤติกรรม (4 ด้าน)</th></tr></thead><tbody>${rows}</tbody></table>`);
   };
+  const exportPdf = () => dl(_doExportPdf);
 
   return (
     <div className="bg-white rounded-2xl shadow-xl p-6 md:p-8 min-h-[80vh]">

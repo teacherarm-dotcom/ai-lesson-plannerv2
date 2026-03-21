@@ -14,8 +14,9 @@ const ConceptModule = ({
   providerId, apiKey,
   formData, generatedPlan, unitDivisionPlan, loResults, compResults, objResults,
   conceptResults, setConceptResults,
-  onError,
+  onError, triggerDownload,
 }) => {
+  const dl = triggerDownload || ((fn) => fn());
   const hasInternal = !!(formData.courseCode && generatedPlan && unitDivisionPlan && loResults && compResults && objResults);
   const [conceptStep, setConceptStep] = useState(1);
   const { callApi, loading } = useAiApi(providerId, apiKey);
@@ -52,17 +53,19 @@ const ConceptModule = ({
     }
   };
 
-  const exportWord = () => {
+  const _doExportWord = () => {
     if (!conceptResults) return;
     const rows = conceptResults.map((item, idx) => `<tr><td style="text-align:center;vertical-align:top;">${idx + 1}</td><td style="vertical-align:top;">${item.unitName}</td><td style="vertical-align:top;">${item.concept}</td></tr>`).join('');
     createWordDoc(`สาระสำคัญ_${formData.courseCode}`, `<table><thead><tr><th width="10%">ที่</th><th width="30%">หน่วยการเรียนรู้</th><th>สาระสำคัญ (Key Concept)</th></tr></thead><tbody>${rows}</tbody></table>`);
   };
+  const exportWord = () => dl(_doExportWord);
 
-  const exportPdf = () => {
+  const _doExportPdf = () => {
     if (!conceptResults) return;
     const rows = conceptResults.map((item, idx) => `<tr><td class="text-center">${idx + 1}</td><td>${item.unitName}</td><td>${item.concept}</td></tr>`).join('');
     printToPdf(`สาระสำคัญ ${formData.courseCode}`, `<table><thead><tr><th width="10%">ที่</th><th width="30%">หน่วยการเรียนรู้</th><th>สาระสำคัญ (Key Concept)</th></tr></thead><tbody>${rows}</tbody></table>`);
   };
+  const exportPdf = () => dl(_doExportPdf);
 
   // --- Full Syllabus Export ---
   const mergeDataForExport = () => {
@@ -76,7 +79,7 @@ const ConceptModule = ({
     }));
   };
 
-  const exportSummaryWord = () => {
+  const _doExportSummaryWord = () => {
     const allUnits = mergeDataForExport();
     if (allUnits.length === 0) return;
     const renderList = (list) => (!list?.length ? '<li>-</li>' : list.map((i) => `<li>${i}</li>`).join(''));
@@ -96,7 +99,9 @@ const ConceptModule = ({
     createWordDoc(`Full_Syllabus_${formData.courseCode}`, `<h2 style="text-align:center;">เอกสารสรุปรายวิชา ${formData.courseCode} ${formData.courseName}</h2><hr/>${content}`);
   };
 
-  const exportSummaryPdf = () => {
+  const exportSummaryWord = () => dl(_doExportSummaryWord);
+
+  const _doExportSummaryPdf = () => {
     const allUnits = mergeDataForExport();
     if (allUnits.length === 0) return;
     const renderList = (list) => (!list?.length ? '<li>-</li>' : list.map((i) => `<li>${i}</li>`).join(''));
@@ -116,6 +121,7 @@ const ConceptModule = ({
     `).join('');
     printToPdf(`เอกสารสรุปรายวิชา: ${formData.courseName}`, content);
   };
+  const exportSummaryPdf = () => dl(_doExportSummaryPdf);
 
   return (
     <div className="bg-white rounded-2xl shadow-xl p-6 md:p-8 min-h-[80vh]">

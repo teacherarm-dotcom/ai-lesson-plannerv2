@@ -7,6 +7,7 @@ import ErrorPopup from './components/common/ErrorPopup';
 import PdfSplitterModal from './components/modals/PdfSplitterModal';
 import StandardSearchPopup from './components/modals/StandardSearchPopup';
 import ApiKeyModal from './components/modals/ApiKeyModal';
+import UserInfoModal, { useDownloadWithUserInfo } from './components/modals/UserInfoModal';
 
 import AnalysisModule from './components/modules/AnalysisModule';
 import LearningOutcomesModule from './components/modules/LearningOutcomesModule';
@@ -43,6 +44,9 @@ export default function App() {
 
   const providerMeta = getProviderMeta(providerId);
 
+  // --- Download with user info ---
+  const userInfoHook = useDownloadWithUserInfo();
+
   // --- Global UI state ---
   const [activeMenu, setActiveMenu] = useState('analysis');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -61,7 +65,7 @@ export default function App() {
 
   const navigate = (menuId) => setActiveMenu(menuId);
 
-  const aiProps = { providerId, apiKey };
+  const aiProps = { providerId, apiKey, triggerDownload: userInfoHook.triggerDownload };
 
   const renderModule = () => {
     switch (activeMenu) {
@@ -143,6 +147,7 @@ export default function App() {
         }}
       />
       <PdfSplitterModal isOpen={isPdfToolOpen} onClose={() => setIsPdfToolOpen(false)} />
+      <UserInfoModal isOpen={userInfoHook.isOpen} onSubmit={userInfoHook.handleSubmit} onClose={userInfoHook.handleClose} />
       <ApiKeyModal
         isOpen={isApiKeyModalOpen}
         onClose={() => setIsApiKeyModalOpen(false)}

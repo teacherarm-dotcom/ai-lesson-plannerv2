@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import MarkdownTableRenderer from '../common/MarkdownTableRenderer';
 import UnitTableWithTooltip from '../common/UnitTableWithTooltip';
+import EditableUnitTable from '../common/EditableUnitTable';
 import ExportButtons from '../common/ExportButtons';
 import { useAiApi } from '../../hooks/useAiApi';
 import { SYSTEM_PROMPT_EXTRACTION, SYSTEM_PROMPT_STANDARD_OCR } from '../../constants/prompts';
@@ -16,7 +17,7 @@ import { printToPdf, createWordDoc } from '../../utils/exportHelpers';
 import { cleanAndParseJSON } from '../../utils/jsonParser';
 
 const AnalysisModule = ({
-  providerId, apiKey,
+  providerId, apiKey, triggerDownload,
   formData, setFormData,
   generatedPlan, setGeneratedPlan,
   unitDivisionPlan, setUnitDivisionPlan,
@@ -180,26 +181,33 @@ const AnalysisModule = ({
   };
 
   // --- Export ---
-  const handleExportWord = () => {
+  const _doExportWord = () => {
     if (!generatedPlan) return;
     createWordDoc(`Job_Analysis_${formData.courseCode}`, convertMarkdownTableToHTML(generatedPlan));
   };
-  const handleSavePdf = () => {
+  const _doSavePdf = () => {
     if (!generatedPlan) return;
     printToPdf(`ตารางวิเคราะห์หน่วยการเรียนรู้ (Job Analysis): ${formData.courseName}`, convertMarkdownTableToHTML(generatedPlan));
   };
-  const handleExportUnitsWord = () => {
+  const _doExportUnitsWord = () => {
     if (!unitDivisionPlan) return;
     const parsed = parseUnitTable(unitDivisionPlan);
     const { rowsHtml, totalTheory, totalPractice, totalAll } = convertUnitTableToHTML(parsed);
     createWordDoc(`ตารางหน่วยการเรียนรู้_${formData.courseCode}`, buildUnitExportHtml(rowsHtml, totalTheory, totalPractice, totalAll));
   };
-  const handleExportUnitsPdf = () => {
+  const _doExportUnitsPdf = () => {
     if (!unitDivisionPlan) return;
     const parsed = parseUnitTable(unitDivisionPlan);
     const { rowsHtml, totalTheory, totalPractice, totalAll } = convertUnitTableToHTML(parsed);
     printToPdf(`ตารางหน่วยการเรียนรู้ ${formData.courseCode}`, buildUnitExportHtml(rowsHtml, totalTheory, totalPractice, totalAll));
   };
+
+  // Wrap all downloads with user info check
+  const dl = triggerDownload || ((fn) => fn());
+  const handleExportWord = () => dl(_doExportWord);
+  const handleSavePdf = () => dl(_doSavePdf);
+  const handleExportUnitsWord = () => dl(_doExportUnitsWord);
+  const handleExportUnitsPdf = () => dl(_doExportUnitsPdf);
 
   const buildUnitExportHtml = (rowsHtml, totalTheory, totalPractice, totalAll) => `
     <table>
@@ -381,10 +389,10 @@ const AnalysisModule = ({
               regenerateLabel="สร้างใหม่"
             />
           </div>
-          <UnitTableWithTooltip markdown={unitDivisionPlan} />
+          <EditableUnitTable markdown={unitDivisionPlan} onSave={(newMd) => setUnitDivisionPlan(newMd)} />
           <div className="mt-4 flex items-start gap-2 text-xs text-orange-700 bg-orange-50 p-3 rounded-lg border border-orange-200">
             <AlertTriangle size={16} className="flex-shrink-0 mt-0.5" />
-            <p><b>คำแนะนำ:</b> ลองนำเมาส์ไปวางที่ "ชื่อหน่วยการเรียนรู้" เพื่อดูหัวข้อเรื่องย่อยที่ซ่อนอยู่<br />ข้อมูลเป็นเพียงตัวอย่างที่ AI สร้างขึ้น คุณครูสามารถปรับเปลี่ยนได้ตามความเหมาะสม</p>
+            <p><b>คำแนะนำ:</b> กดปุ่ม "แก้ไขตาราง" เพื่อแก้ไขชื่อหน่วย เพิ่ม/ลบหน่วย หรือปรับชั่วโมงได้ตามต้องการ<br />ข้อมูลเป็นเพียงตัวอย่างที่ AI สร้างขึ้น คุณครูสามารถปรับเปลี่ยนได้ตามความเหมาะสม</p>
           </div>
           <div className="mt-6 text-center">
             <button onClick={() => onNavigate('learning_outcomes')} className="bg-green-600 text-white px-8 py-3 rounded-xl font-bold hover:bg-green-700 shadow-lg flex items-center gap-2 mx-auto animate-bounce">
