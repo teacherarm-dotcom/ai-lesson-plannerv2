@@ -1,8 +1,19 @@
 import React from 'react';
-import { Youtube, Scissors } from 'lucide-react';
+import { Youtube, Scissors, Settings, Sparkles } from 'lucide-react';
 
-const TopToolsBar = ({ onOpenPdfTool }) => (
-  <div className="flex justify-end mb-4 gap-3">
+const TopToolsBar = ({ onOpenPdfTool, onOpenApiKeyModal, providerName, isFreeProvider }) => (
+  <div className="flex justify-end mb-4 gap-3 flex-wrap">
+    <button
+      onClick={onOpenApiKeyModal}
+      className={`px-3 py-2 rounded-lg text-sm font-medium transition shadow-sm flex items-center gap-1.5 border ${
+        isFreeProvider
+          ? 'bg-green-50 border-green-200 text-green-700 hover:bg-green-100'
+          : 'bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100'
+      }`}
+    >
+      {isFreeProvider ? <Sparkles size={14} /> : <Settings size={14} />}
+      {providerName} {isFreeProvider ? '(ฟรี)' : ''}
+    </button>
     <a
       href="https://youtu.be/FjoTMFQMmnI"
       target="_blank"

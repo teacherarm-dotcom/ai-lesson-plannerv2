@@ -1,36 +1,38 @@
 import React, { useState, useEffect } from 'react';
-import { X, Key, ExternalLink, Eye, EyeOff, ShieldCheck } from 'lucide-react';
+import { X, Key, ExternalLink, Eye, EyeOff, ShieldCheck, Sparkles } from 'lucide-react';
 import { getAvailableProviders } from '../../providers/index';
-import { getStoredApiKey as getKeyForProvider } from '../../hooks/useAiApi';
+import { getStoredApiKey as getKeyForProvider, providerNeedsKey } from '../../hooks/useAiApi';
 
 const PROVIDERS = getAvailableProviders();
 
 const ApiKeyModal = ({ isOpen, onClose, onSave, currentProvider, currentKey }) => {
-  const [selectedProvider, setSelectedProvider] = useState(currentProvider || 'gemini');
+  const [selectedProvider, setSelectedProvider] = useState(currentProvider || 'openrouter');
   const [inputKey, setInputKey] = useState(currentKey || '');
   const [showKey, setShowKey] = useState(false);
 
   const meta = PROVIDERS.find((p) => p.id === selectedProvider) || PROVIDERS[0];
+  const needsKey = providerNeedsKey(selectedProvider);
 
-  // When switching providers, load that provider's stored key
   useEffect(() => {
-    setInputKey(getKeyForProvider(selectedProvider) || '');
+    if (needsKey) {
+      setInputKey(getKeyForProvider(selectedProvider) || '');
+    } else {
+      setInputKey('');
+    }
   }, [selectedProvider]);
 
-  // Sync when modal opens
   useEffect(() => {
     if (isOpen) {
-      setSelectedProvider(currentProvider || 'gemini');
-      setInputKey(currentKey || '');
+      setSelectedProvider(currentProvider || 'openrouter');
+      setInputKey(needsKey ? (currentKey || '') : '');
     }
   }, [isOpen, currentProvider, currentKey]);
 
   if (!isOpen) return null;
 
   const handleSave = () => {
-    const trimmed = inputKey.trim();
-    if (!trimmed) return;
-    onSave(selectedProvider, trimmed);
+    if (needsKey && !inputKey.trim()) return;
+    onSave(selectedProvider, needsKey ? inputKey.trim() : 'free');
     onClose();
   };
 
@@ -46,8 +48,8 @@ const ApiKeyModal = ({ isOpen, onClose, onSave, currentProvider, currentKey }) =
             <Key className="w-6 h-6 text-blue-600" />
           </div>
           <div>
-            <h3 className="text-xl font-bold text-gray-900">ตั้งค่า AI Provider</h3>
-            <p className="text-xs text-gray-500">เลือกค่ายและกรอก API Key</p>
+            <h3 className="text-xl font-bold text-gray-900">เลือก AI Provider</h3>
+            <p className="text-xs text-gray-500">ใช้ฟรี หรือ นำ API Key ของตัวเองมาใช้</p>
           </div>
         </div>
 
@@ -60,63 +62,82 @@ const ApiKeyModal = ({ isOpen, onClose, onSave, currentProvider, currentKey }) =
                 <button
                   key={p.id}
                   onClick={() => setSelectedProvider(p.id)}
-                  className={`px-3 py-2.5 rounded-xl text-sm font-medium border-2 transition-all ${
+                  className={`px-3 py-2.5 rounded-xl text-sm font-medium border-2 transition-all relative ${
                     selectedProvider === p.id
                       ? 'border-blue-500 bg-blue-50 text-blue-700 shadow-sm'
                       : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300 hover:bg-gray-50'
                   }`}
                 >
+                  {p.id === 'openrouter' && (
+                    <span className="absolute -top-2 -right-2 bg-green-500 text-white text-[10px] px-1.5 py-0.5 rounded-full font-bold">ฟรี</span>
+                  )}
                   {p.name}
                 </button>
               ))}
             </div>
           </div>
 
-          {/* Help box */}
-          <div className="bg-blue-50 p-4 rounded-xl border border-blue-200 text-sm text-blue-800">
-            <p className="font-bold mb-1">{meta.helpText}</p>
-            <a
-              href={meta.helpUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-1 mt-1 text-blue-600 hover:text-blue-800 font-medium underline"
-            >
-              <ExternalLink size={14} /> เปิดหน้าขอ API Key
-            </a>
-          </div>
-
-          {/* API Key input */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">{meta.name} API Key</label>
-            <div className="relative">
-              <input
-                type={showKey ? 'text' : 'password'}
-                value={inputKey}
-                onChange={(e) => setInputKey(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && handleSave()}
-                placeholder={meta.placeholder}
-                className="w-full p-3 pr-10 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 font-mono text-sm"
-              />
-              <button
-                onClick={() => setShowKey(!showKey)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
-              >
-                {showKey ? <EyeOff size={18} /> : <Eye size={18} />}
-              </button>
+          {/* Free provider info */}
+          {!needsKey && (
+            <div className="bg-green-50 p-4 rounded-xl border border-green-200 text-sm text-green-800">
+              <div className="flex items-center gap-2 mb-1">
+                <Sparkles size={16} className="text-green-600" />
+                <span className="font-bold">ใช้งานฟรี ไม่ต้องกรอก API Key!</span>
+              </div>
+              <p className="text-green-700 text-xs">ระบบจะใช้ OpenRouter (Gemini 2.5 Flash) โดยไม่มีค่าใช้จ่าย เหมาะสำหรับการใช้งานทั่วไป</p>
             </div>
-          </div>
+          )}
 
-          <div className="flex items-start gap-2 text-xs text-gray-500 bg-gray-50 p-3 rounded-lg">
-            <ShieldCheck size={16} className="flex-shrink-0 mt-0.5 text-green-500" />
-            <p>API Key จะถูกเก็บไว้ในเบราว์เซอร์ของคุณเท่านั้น (localStorage)</p>
-          </div>
+          {/* Paid provider - need API key */}
+          {needsKey && (
+            <>
+              <div className="bg-blue-50 p-4 rounded-xl border border-blue-200 text-sm text-blue-800">
+                <p className="font-bold mb-1">{meta.helpText}</p>
+                {meta.helpUrl && (
+                  <a
+                    href={meta.helpUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 mt-1 text-blue-600 hover:text-blue-800 font-medium underline"
+                  >
+                    <ExternalLink size={14} /> เปิดหน้าขอ API Key
+                  </a>
+                )}
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">{meta.name} API Key</label>
+                <div className="relative">
+                  <input
+                    type={showKey ? 'text' : 'password'}
+                    value={inputKey}
+                    onChange={(e) => setInputKey(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && handleSave()}
+                    placeholder={meta.placeholder}
+                    className="w-full p-3 pr-10 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 font-mono text-sm"
+                  />
+                  <button
+                    onClick={() => setShowKey(!showKey)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  >
+                    {showKey ? <EyeOff size={18} /> : <Eye size={18} />}
+                  </button>
+                </div>
+              </div>
+
+              <div className="flex items-start gap-2 text-xs text-gray-500 bg-gray-50 p-3 rounded-lg">
+                <ShieldCheck size={16} className="flex-shrink-0 mt-0.5 text-green-500" />
+                <p>API Key จะถูกเก็บไว้ในเบราว์เซอร์ของคุณเท่านั้น (localStorage)</p>
+              </div>
+            </>
+          )}
 
           <button
             onClick={handleSave}
-            disabled={!inputKey.trim()}
+            disabled={needsKey && !inputKey.trim()}
             className="w-full bg-blue-600 text-white py-3 rounded-xl font-semibold hover:bg-blue-700 transition shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            บันทึกและใช้งาน {meta.name}
+            {needsKey ? `บันทึกและใช้งาน ${meta.name}` : `ใช้งาน ${meta.name} (ฟรี)`}
           </button>
         </div>
       </div>

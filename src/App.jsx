@@ -6,6 +6,7 @@ import TopToolsBar from './components/layout/TopToolsBar';
 import ErrorPopup from './components/common/ErrorPopup';
 import PdfSplitterModal from './components/modals/PdfSplitterModal';
 import StandardSearchPopup from './components/modals/StandardSearchPopup';
+import ApiKeyModal from './components/modals/ApiKeyModal';
 
 import AnalysisModule from './components/modules/AnalysisModule';
 import LearningOutcomesModule from './components/modules/LearningOutcomesModule';
@@ -13,7 +14,8 @@ import CompetencyModule from './components/modules/CompetencyModule';
 import ObjectivesModule from './components/modules/ObjectivesModule';
 import ConceptModule from './components/modules/ConceptModule';
 
-import { DEFAULT_PROVIDER } from './providers/index';
+import { getStoredProvider, setStoredProvider, getStoredApiKey, setStoredApiKey } from './hooks/useAiApi';
+import { getProviderMeta, DEFAULT_PROVIDER } from './providers/index';
 
 const EMPTY_FORM = {
   courseCode: '', courseName: '', credits: '', ratio: '',
@@ -22,9 +24,24 @@ const EMPTY_FORM = {
 };
 
 export default function App() {
-  // --- AI Provider (hardcoded OpenRouter, no user input needed) ---
-  const providerId = DEFAULT_PROVIDER;
-  const apiKey = 'hardcoded'; // OpenRouter uses internal key
+  // --- AI Provider (Hybrid: OpenRouter free by default, user can switch) ---
+  const [providerId, setProviderId] = useState(() => getStoredProvider() || DEFAULT_PROVIDER);
+  const [apiKey, setApiKey] = useState(() => {
+    const stored = getStoredProvider() || DEFAULT_PROVIDER;
+    return stored === 'openrouter' ? 'free' : (getStoredApiKey(stored) || '');
+  });
+  const [isApiKeyModalOpen, setIsApiKeyModalOpen] = useState(false);
+
+  const handleSaveProvider = (newProviderId, newKey) => {
+    setStoredProvider(newProviderId);
+    if (newProviderId !== 'openrouter') {
+      setStoredApiKey(newProviderId, newKey);
+    }
+    setProviderId(newProviderId);
+    setApiKey(newKey);
+  };
+
+  const providerMeta = getProviderMeta(providerId);
 
   // --- Global UI state ---
   const [activeMenu, setActiveMenu] = useState('analysis');
@@ -44,7 +61,6 @@ export default function App() {
 
   const navigate = (menuId) => setActiveMenu(menuId);
 
-  // Common props for all modules
   const aiProps = { providerId, apiKey };
 
   const renderModule = () => {
@@ -127,6 +143,13 @@ export default function App() {
         }}
       />
       <PdfSplitterModal isOpen={isPdfToolOpen} onClose={() => setIsPdfToolOpen(false)} />
+      <ApiKeyModal
+        isOpen={isApiKeyModalOpen}
+        onClose={() => setIsApiKeyModalOpen(false)}
+        onSave={handleSaveProvider}
+        currentProvider={providerId}
+        currentKey={apiKey}
+      />
 
       <div className="md:hidden bg-blue-700 text-white p-4 flex items-center justify-between sticky top-0 z-50 shadow-md">
         <span className="font-bold flex items-center gap-2"><BookOpen size={20} /> AI ช่วยทำแผนการสอน</span>
@@ -140,6 +163,9 @@ export default function App() {
         <main className="flex-1 min-w-0">
           <TopToolsBar
             onOpenPdfTool={() => setIsPdfToolOpen(true)}
+            onOpenApiKeyModal={() => setIsApiKeyModalOpen(true)}
+            providerName={providerMeta?.name || 'OpenRouter'}
+            isFreeProvider={providerId === 'openrouter'}
           />
           {renderModule()}
         </main>
