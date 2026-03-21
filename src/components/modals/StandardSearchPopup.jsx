@@ -1,15 +1,16 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { X, Sparkles, RotateCcw, Send, Paperclip, Loader2, FileDown } from 'lucide-react';
+import { X, Sparkles, RotateCcw, Send, Paperclip, Loader2, FileDown, CheckSquare, Square } from 'lucide-react';
 import ChatBubble from '../common/ChatBubble';
 import { SYSTEM_PROMPT_STANDARD_ANALYSIS } from '../../constants/prompts';
 import { cleanAndParseJSON } from '../../utils/jsonParser';
 import { createProvider } from '../../providers/index';
 
-const StandardSearchPopup = ({ isOpen, onClose, providerId, apiKey }) => {
+const StandardSearchPopup = ({ isOpen, onClose, providerId, apiKey, onStandardSelected }) => {
   const [messages, setMessages] = useState([]);
   const [step, setStep] = useState('init');
   const [inputValue, setInputValue] = useState('');
   const [standardData, setStandardData] = useState([]);
+  const [selectedUocs, setSelectedUocs] = useState({});
   const [loading, setLoading] = useState(false);
   const messagesEndRef = useRef(null);
 
@@ -35,6 +36,7 @@ const StandardSearchPopup = ({ isOpen, onClose, providerId, apiKey }) => {
     ]);
     setStep('init');
     setStandardData([]);
+    setSelectedUocs({});
     setInputValue('');
     setLoading(false);
   };
@@ -117,8 +119,12 @@ const StandardSearchPopup = ({ isOpen, onClose, providerId, apiKey }) => {
           const data = cleanAndParseJSON(text);
           if (data?.standards) {
             setStandardData(data.standards);
-            addMessage(`น้องเพชรดึงข้อมูลเรียบร้อยแล้วค่ะ! พบ ${data.standards.length} รายการ\n\nตรวจสอบตารางด้านล่างได้เลยค่ะ`, 'bot');
-            setStep('done');
+            // Pre-select all UoCs
+            const initSelected = {};
+            getUniqueUocs(data.standards).forEach((_, idx) => { initSelected[idx] = true; });
+            setSelectedUocs(initSelected);
+            addMessage(`น้องเพชรดึงข้อมูลเรียบร้อยแล้วค่ะ! พบ ${data.standards.length} รายการ\n\nกรุณาเลือก **หน่วยสมรรถนะ (UoC)** ที่ต้องการใช้งานด้านล่างค่ะ`, 'bot');
+            setStep('select_uoc');
           } else throw new Error('Invalid Data Format');
         } else throw new Error('No data');
       } catch {
@@ -130,24 +136,79 @@ const StandardSearchPopup = ({ isOpen, onClose, providerId, apiKey }) => {
     reader.readAsDataURL(file);
   };
 
-  const generateWordDoc = () => {
+  // --- UoC Selection helpers ---
+  const getUniqueUocs = (data) => {
+    const seen = new Map();
+    (data || []).forEach((item) => {
+      const key = item.uoc_code || item.uoc_desc;
+      if (key && !seen.has(key)) {
+        seen.set(key, { code: item.uoc_code, desc: item.uoc_desc });
+      }
+    });
+    return Array.from(seen.values());
+  };
+
+  const uniqueUocs = getUniqueUocs(standardData);
+
+  const toggleUoc = (idx) => {
+    setSelectedUocs((prev) => ({ ...prev, [idx]: !prev[idx] }));
+  };
+
+  const toggleAll = () => {
+    const allSelected = uniqueUocs.every((_, idx) => selectedUocs[idx]);
+    const next = {};
+    uniqueUocs.forEach((_, idx) => { next[idx] = !allSelected; });
+    setSelectedUocs(next);
+  };
+
+  const getSelectedData = () => {
+    const selectedCodes = new Set();
+    uniqueUocs.forEach((uoc, idx) => {
+      if (selectedUocs[idx]) selectedCodes.add(uoc.code);
+    });
+    return standardData.filter((item) => selectedCodes.has(item.uoc_code));
+  };
+
+  const handleConfirmUocAndDownload = () => {
+    const filtered = getSelectedData();
+    if (filtered.length === 0) {
+      addMessage('กรุณาเลือกอย่างน้อย 1 หน่วยสมรรถนะค่ะ', 'bot');
+      return;
+    }
+
+    // Generate Word doc with header and selected UoCs only
     const htmlContent = `<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
-<head><meta charset='utf-8'><title>ตารางมาตรฐาน</title>
-<style>body{font-family:'TH Sarabun New',sans-serif;}table{border-collapse:collapse;width:100%;}th,td{border:1px solid black;padding:5px;vertical-align:top;}th{background-color:#f2f2f2;}</style>
-</head><body><h2>ตารางมาตรฐานอาชีพ</h2>
-<table><thead><tr><th colspan="2">หน่วยสมรรถนะ (UoC)</th><th colspan="2">สมรรถนะย่อย (EoC)</th><th>เกณฑ์ในการปฏิบัติงาน</th><th>วิธีการประเมิน</th></tr>
+<head><meta charset='utf-8'><title>ตารางมาตรฐานอาชีพ</title>
+<style>body{font-family:'TH Sarabun New',sans-serif;font-size:16pt;}table{border-collapse:collapse;width:100%;}th,td{border:1px solid black;padding:5px;vertical-align:top;}th{background-color:#f2f2f2;}h2,h3{text-align:center;}p.header-info{text-align:center;margin:2px 0;}</style>
+</head><body>
+<h2>มาตรฐานอาชีพ</h2>
+<p class="header-info">หน่วยงานรับรองมาตรฐานอาชีพสถาบันคุณวุฒิวิชาชีพ (องค์การมหาชน)</p>
+<p class="header-info">มาตรฐานอาชีพ  สาขาวิชาชีพ.......................................................</p>
+<p class="header-info">อาชีพ................................................................ระดับ.......................</p>
+<br/>
+<table><thead><tr><th colspan="2">หน่วยสมรรถนะ (UoC)</th><th colspan="2">สมรรถนะย่อย (EoC)</th><th>เกณฑ์ในการปฏิบัติงาน (Performance Criteria)</th><th>วิธีการประเมิน (Assessment)</th></tr>
 <tr><th>รหัส</th><th>คำอธิบาย</th><th>รหัส</th><th>คำอธิบาย</th><th></th><th></th></tr></thead>
-<tbody>${standardData.map((item) => `<tr><td>${item.uoc_code}</td><td>${item.uoc_desc}</td><td>${item.eoc_code}</td><td>${item.eoc_desc}</td><td>${item.criteria}</td><td>${item.assessment}</td></tr>`).join('')}</tbody></table></body></html>`;
+<tbody>${filtered.map((item) => `<tr><td>${item.uoc_code || ''}</td><td>${item.uoc_desc || ''}</td><td>${item.eoc_code || ''}</td><td>${item.eoc_desc || ''}</td><td>${item.criteria || ''}</td><td>${item.assessment || ''}</td></tr>`).join('')}</tbody></table></body></html>`;
 
     const blob = new Blob(['\ufeff', htmlContent], { type: 'application/msword' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = 'ตารางมาตรฐาน.doc';
+    link.download = 'ตารางมาตรฐานอาชีพ.doc';
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-    addMessage('ดาวน์โหลดไฟล์ตารางมาตรฐานเรียบร้อยแล้วค่ะ!', 'bot');
+
+    // Pass selected standard data to parent for use in analysis
+    if (onStandardSelected) {
+      const summaryText = filtered.map((item) =>
+        `UoC: ${item.uoc_code} ${item.uoc_desc}\nEoC: ${item.eoc_code} ${item.eoc_desc}\nCriteria: ${item.criteria}\nAssessment: ${item.assessment}`
+      ).join('\n\n');
+      onStandardSelected(summaryText);
+    }
+
+    addMessage(`ดาวน์โหลดไฟล์ตารางมาตรฐานเรียบร้อยแล้วค่ะ! (เลือก ${filtered.length} รายการจาก ${standardData.length} รายการ)\n\nข้อมูลมาตรฐานที่เลือกจะถูกส่งไปใช้ในการวิเคราะห์งานต่อไปค่ะ`, 'bot');
+    setStep('done');
   };
 
   if (!isOpen) return null;
@@ -186,7 +247,45 @@ const StandardSearchPopup = ({ isOpen, onClose, providerId, apiKey }) => {
           <div ref={messagesEndRef} />
         </div>
 
-        {/* Table preview */}
+        {/* UoC Selection Panel */}
+        {step === 'select_uoc' && uniqueUocs.length > 0 && (
+          <div className="p-3 bg-gray-50 border-t border-gray-200 max-h-52 overflow-y-auto">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs font-bold text-gray-700">เลือกหน่วยสมรรถนะ (UoC) ที่ต้องการ:</span>
+              <button
+                onClick={toggleAll}
+                className="text-xs text-blue-600 hover:text-blue-800 font-medium"
+              >
+                {uniqueUocs.every((_, idx) => selectedUocs[idx]) ? 'ยกเลิกทั้งหมด' : 'เลือกทั้งหมด'}
+              </button>
+            </div>
+            <div className="space-y-1.5">
+              {uniqueUocs.map((uoc, idx) => (
+                <label
+                  key={idx}
+                  className={`flex items-start gap-2 p-2 rounded-lg cursor-pointer transition border ${
+                    selectedUocs[idx]
+                      ? 'bg-blue-50 border-blue-300'
+                      : 'bg-white border-gray-200 hover:bg-gray-50'
+                  }`}
+                >
+                  <input
+                    type="checkbox"
+                    checked={!!selectedUocs[idx]}
+                    onChange={() => toggleUoc(idx)}
+                    className="mt-0.5 w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
+                  />
+                  <div className="flex-1 min-w-0">
+                    <div className="text-xs font-bold text-blue-700">{uoc.code}</div>
+                    <div className="text-xs text-gray-700 leading-tight">{uoc.desc}</div>
+                  </div>
+                </label>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Table preview for done step */}
         {step === 'done' && standardData.length > 0 && (
           <div className="p-2 bg-gray-100 border-t border-gray-200 max-h-40 overflow-y-auto text-xs">
             <table className="w-full bg-white border border-gray-300">
@@ -194,7 +293,7 @@ const StandardSearchPopup = ({ isOpen, onClose, providerId, apiKey }) => {
                 <tr><th className="p-1 border">UoC</th><th className="p-1 border">EoC</th><th className="p-1 border">Criteria</th></tr>
               </thead>
               <tbody>
-                {standardData.slice(0, 2).map((r, i) => (
+                {getSelectedData().slice(0, 2).map((r, i) => (
                   <tr key={i}>
                     <td className="p-1 border truncate max-w-[50px]">{r.uoc_code}</td>
                     <td className="p-1 border truncate max-w-[50px]">{r.eoc_desc}</td>
@@ -203,7 +302,7 @@ const StandardSearchPopup = ({ isOpen, onClose, providerId, apiKey }) => {
                 ))}
               </tbody>
             </table>
-            <p className="text-center text-gray-500 mt-1 italic">...แสดงตัวอย่าง 2 รายการ...</p>
+            <p className="text-center text-gray-500 mt-1 italic">...แสดงตัวอย่าง...</p>
           </div>
         )}
 
@@ -243,10 +342,18 @@ const StandardSearchPopup = ({ isOpen, onClose, providerId, apiKey }) => {
               </label>
             </div>
           )}
-          {step === 'done' && (
-            <button onClick={generateWordDoc} className="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 flex items-center justify-center gap-2 shadow-lg">
-              <FileDown size={20} /> สร้างไฟล์ Word (ตารางมาตรฐาน.docx)
+          {step === 'select_uoc' && (
+            <button
+              onClick={handleConfirmUocAndDownload}
+              className="w-full bg-blue-600 text-white py-2.5 rounded-lg hover:bg-blue-700 flex items-center justify-center gap-2 shadow-lg font-medium"
+            >
+              <FileDown size={20} /> ยืนยันและดาวน์โหลด Word ({Object.values(selectedUocs).filter(Boolean).length} UoC ที่เลือก)
             </button>
+          )}
+          {step === 'done' && (
+            <div className="text-center text-sm text-green-700 font-medium py-2">
+              ดาวน์โหลดเรียบร้อยแล้ว — ข้อมูลมาตรฐานพร้อมใช้ในการวิเคราะห์งาน
+            </div>
           )}
         </div>
       </div>

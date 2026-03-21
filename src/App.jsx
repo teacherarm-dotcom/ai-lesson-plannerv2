@@ -126,7 +126,18 @@ export default function App() {
   return (
     <div className="min-h-screen bg-gray-50 font-sans pb-12">
       <ErrorPopup message={error} onClose={() => setError(null)} />
-      <StandardSearchPopup isOpen={isStandardPopupOpen} onClose={() => setIsStandardPopupOpen(false)} providerId={providerId} apiKey={apiKey} />
+      <StandardSearchPopup
+        isOpen={isStandardPopupOpen}
+        onClose={() => setIsStandardPopupOpen(false)}
+        providerId={providerId}
+        apiKey={apiKey}
+        onStandardSelected={(summaryText) => {
+          setFormData((prev) => ({
+            ...prev,
+            standardRef: prev.standardRef || 'อ้างอิงมาตรฐาน สคช. (TPQI)',
+          }));
+        }}
+      />
       <PdfSplitterModal isOpen={isPdfToolOpen} onClose={() => setIsPdfToolOpen(false)} />
       <ApiKeyModal
         isOpen={isApiKeyModalOpen}
