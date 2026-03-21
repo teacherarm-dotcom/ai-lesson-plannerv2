@@ -1,20 +1,50 @@
 import React from 'react';
 import ReactMarkdown from 'react-markdown';
 
-const cleanMarkdown = (md) =>
-  md.replace(/```markdown/g, '').replace(/```/g, '').trim();
+/**
+ * Clean + merge multiple tables from AI response into a single table.
+ * Removes duplicate headers, separators, and non-table text.
+ */
+const cleanAndMerge = (md) => {
+  const clean = md.replace(/```markdown/g, '').replace(/```/g, '').trim();
+  const lines = clean.split('\n').map((l) => l.trim()).filter(Boolean);
+
+  let headerLine = null;
+  let sepLine = null;
+  const dataRows = [];
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    // Separator line
+    if (line.startsWith('|') && /^[\s|:-]+$/.test(line.replace(/---+/g, ''))) {
+      if (!sepLine) {
+        sepLine = line;
+        if (i > 0 && lines[i - 1].startsWith('|')) headerLine = lines[i - 1];
+      }
+      continue;
+    }
+    // Data row
+    if (line.startsWith('|') && sepLine) {
+      if (headerLine && line === headerLine) continue; // skip duplicate header
+      dataRows.push(line);
+    }
+  }
+
+  if (!headerLine || !sepLine) return clean;
+  return [headerLine, sepLine, ...dataRows].join('\n');
+};
 
 const MarkdownTableRenderer = ({ content }) => {
   if (!content) return null;
 
-  const clean = cleanMarkdown(content);
-  const lines = clean.split('\n').map((l) => l.trim()).filter(Boolean);
+  const merged = cleanAndMerge(content);
+  const lines = merged.split('\n').map((l) => l.trim()).filter(Boolean);
   const sepIdx = lines.findIndex((l) => l.startsWith('|') && l.includes('---'));
 
   if (sepIdx === -1 || sepIdx === 0) {
     return (
       <div className="p-4 bg-gray-50 text-gray-700 whitespace-pre-wrap font-mono text-sm">
-        {clean}
+        {merged}
       </div>
     );
   }

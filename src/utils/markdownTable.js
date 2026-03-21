@@ -6,11 +6,54 @@ const cleanMarkdown = (md) =>
   md.replace(/```markdown/g, '').replace(/```/g, '').trim();
 
 /**
+ * Clean AI response that may contain multiple tables merged together.
+ * Keeps only the FIRST header + separator, then ALL data rows from all tables.
+ * Also removes any non-table text (e.g. "ตรวจสอบรายละเอียด").
+ */
+const mergeMultipleTables = (markdown) => {
+  const clean = cleanMarkdown(markdown);
+  const lines = clean.split('\n').map((l) => l.trim()).filter(Boolean);
+
+  let headerLine = null;
+  let sepLine = null;
+  const dataRows = [];
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    // Check if this is a separator line (---|---|---)
+    if (line.startsWith('|') && /^[\s|:-]+$/.test(line.replace(/---+/g, ''))) {
+      // This is a separator — if we don't have one yet, capture it and the header above
+      if (!sepLine) {
+        sepLine = line;
+        if (i > 0 && lines[i - 1].startsWith('|')) {
+          headerLine = lines[i - 1];
+        }
+      }
+      // Skip duplicate separators
+      continue;
+    }
+    // Data row — must start with | and NOT be a header we already captured
+    if (line.startsWith('|')) {
+      // Skip if this is a duplicate header (same as headerLine)
+      if (headerLine && line === headerLine) continue;
+      // Skip lines that look like headers (contain words like "Job No.", "ลำดับงาน", etc.)
+      if (!sepLine) continue; // no separator yet = header area, skip
+      dataRows.push(line);
+    }
+    // Non-table text — skip entirely
+  }
+
+  if (!headerLine || !sepLine) return clean;
+
+  return [headerLine, sepLine, ...dataRows].join('\n');
+};
+
+/**
  * Convert a Markdown table string into an HTML <table> string (for Word / PDF export).
  */
 export const convertMarkdownTableToHTML = (markdown) => {
-  const clean = cleanMarkdown(markdown);
-  const lines = clean.split('\n').map((l) => l.trim()).filter(Boolean);
+  const merged = mergeMultipleTables(markdown);
+  const lines = merged.split('\n').map((l) => l.trim()).filter(Boolean);
 
   const sepIdx = lines.findIndex((l) => l.startsWith('|') && l.includes('---'));
   if (sepIdx === -1) return `<p>${markdown}</p>`;
@@ -55,8 +98,8 @@ export const convertMarkdownTableToHTML = (markdown) => {
  */
 export const parseUnitTable = (markdown) => {
   if (!markdown) return [];
-  const clean = cleanMarkdown(markdown);
-  const lines = clean.split('\n').map((l) => l.trim()).filter(Boolean);
+  const merged = mergeMultipleTables(markdown);
+  const lines = merged.split('\n').map((l) => l.trim()).filter(Boolean);
   const sepIdx = lines.findIndex((l) => l.startsWith('|') && l.includes('---'));
   if (sepIdx === -1) return [];
 
@@ -69,12 +112,12 @@ export const parseUnitTable = (markdown) => {
         .filter((_, i, arr) => i !== 0 && i !== arr.length - 1)
         .map((c) => (c ? c.trim() : ''));
       return {
-        no: cells[0],
-        name: cells[1],
-        topics: cells[2],
-        theory: cells[3],
-        practice: cells[4],
-        total: cells[5],
+        no: cells[0] || '',
+        name: cells[1] || '',
+        topics: cells[2] || '',
+        theory: cells[3] || '',
+        practice: cells[4] || '',
+        total: cells[5] || '',
       };
     });
 };
