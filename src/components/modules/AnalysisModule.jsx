@@ -22,7 +22,12 @@ const AnalysisModule = ({
   unitDivisionPlan, setUnitDivisionPlan,
   onError, onNavigate, onOpenStandardSearch,
 }) => {
-  const [step, setStep] = useState(1);
+  // Auto-restore step based on existing data
+  const [step, setStep] = useState(() => {
+    if (generatedPlan) return 3;
+    if (formData.courseCode) return 2;
+    return 1;
+  });
   const [courseFile, setCourseFile] = useState(null);
   const [hasStandard, setHasStandard] = useState(false);
   const [standardContent, setStandardContent] = useState('');
