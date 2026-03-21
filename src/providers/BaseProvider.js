@@ -82,7 +82,7 @@ export class BaseProvider {
    */
   _friendlyMessage(status, detail) {
     if (status === 401 || status === 403) return 'API Key ไม่ถูกต้องหรือหมดอายุ — กรุณาตรวจสอบ API Key หรือเปลี่ยน Provider';
-    if (status === 429) return 'ใช้งานถี่เกินไป — ระบบกำลังลองใหม่อัตโนมัติ กรุณารอสักครู่';
+    if (status === 429) return 'AI กำลังยุ่ง กรุณารอ 30 วินาทีแล้วลองใหม่อีกครั้ง';
     if (status === 404) return 'โมเดล AI ไม่พร้อมใช้งาน — กรุณาลองใหม่หรือเปลี่ยน Provider';
     if (status >= 500) return 'เซิร์ฟเวอร์ AI มีปัญหาชั่วคราว — กรุณาลองใหม่อีกครั้ง';
     if (detail) return detail;
