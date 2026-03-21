@@ -48,14 +48,10 @@ export class ClaudeProvider extends BaseProvider {
         },
         body: JSON.stringify(payload),
       });
-      if (!response.ok) {
-        const err = new Error(`HTTP ${response.status}`);
-        err.status = response.status;
-        throw err;
-      }
+      if (!response.ok) throw await this._parseErrorResponse(response);
       const data = await response.json();
       const text = data.content?.find((b) => b.type === 'text')?.text;
-      if (!text) throw new Error('No response text from Claude');
+      if (!text) throw new Error('AI ไม่ส่งข้อมูลกลับมา กรุณาลองใหม่อีกครั้ง');
       return text;
     });
   }

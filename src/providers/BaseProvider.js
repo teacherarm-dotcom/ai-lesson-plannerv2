@@ -1,6 +1,5 @@
 /**
  * BaseProvider — Abstract AI Provider Interface
- * All AI providers must implement this interface.
  */
 export class BaseProvider {
   constructor(apiKey) {
@@ -17,22 +16,13 @@ export class BaseProvider {
   static get apiKeyHelpUrl() { return '#'; }
   static get apiKeyHelpText() { return 'Get your API key from the provider\'s website'; }
 
-  /**
-   * Send a message with optional file attachments.
-   * @param {string} systemPrompt
-   * @param {Array} contents - [{ type: 'text'|'image'|'pdf'|'word', data: string, mimeType?: string }]
-   * @param {Object} options - { requireJson: boolean }
-   * @returns {Promise<string>}
-   */
   async sendMessage(systemPrompt, contents = [], options = {}) {
     throw new Error('sendMessage() must be implemented by subclass');
   }
 
   /**
    * Retry with exponential backoff.
-   * - 429 (rate limit): wait longer (10s, 20s, 30s, 45s, 60s) and always retry
-   * - 5xx (server error): wait shorter (2s, 4s, 8s) and retry
-   * - 4xx (client error, not 429): fail immediately (bad request, auth, etc.)
+   * 429: wait 10-60s; 5xx: wait 2-16s; 4xx(not 429): fail immediately
    */
   async withRetry(fn) {
     let lastError;
@@ -43,29 +33,23 @@ export class BaseProvider {
         lastError = err;
         const status = err.status || 0;
 
-        // Client errors (400, 401, 403, 404) — don't retry, fail fast
         if (status >= 400 && status < 500 && status !== 429) {
           throw err;
         }
 
-        // No more retries left
-        if (attempt >= this.maxRetries) {
-          break;
-        }
+        if (attempt >= this.maxRetries) break;
 
-        // Rate limit (429) — wait longer with increasing delay
         if (status === 429) {
-          const rateLimitDelays = [10000, 20000, 30000, 45000, 60000];
-          const delay = rateLimitDelays[Math.min(attempt, rateLimitDelays.length - 1)];
-          console.log(`[AI Provider] Rate limit (429) — waiting ${delay / 1000}s before retry ${attempt + 1}/${this.maxRetries}...`);
+          const delays = [10000, 20000, 30000, 45000, 60000];
+          const delay = delays[Math.min(attempt, delays.length - 1)];
+          console.log(`[AI] Rate limit — รอ ${delay / 1000}s ก่อน retry ${attempt + 1}/${this.maxRetries}...`);
           await new Promise((r) => setTimeout(r, delay));
           continue;
         }
 
-        // Server errors (5xx) or network — shorter delay
-        const serverDelays = [2000, 4000, 8000, 12000, 16000];
-        const delay = serverDelays[Math.min(attempt, serverDelays.length - 1)];
-        console.log(`[AI Provider] Error ${status || 'network'} — waiting ${delay / 1000}s before retry ${attempt + 1}/${this.maxRetries}...`);
+        const delays = [2000, 4000, 8000, 12000, 16000];
+        const delay = delays[Math.min(attempt, delays.length - 1)];
+        console.log(`[AI] Error ${status || 'network'} — รอ ${delay / 1000}s ก่อน retry...`);
         await new Promise((r) => setTimeout(r, delay));
       }
     }
@@ -74,5 +58,34 @@ export class BaseProvider {
 
   fileToBase64(dataUrl) {
     return dataUrl.includes(',') ? dataUrl.split(',')[1] : dataUrl;
+  }
+
+  /**
+   * Read error body from API response and create a friendly error
+   */
+  async _parseErrorResponse(response) {
+    let detail = '';
+    try {
+      const body = await response.json();
+      detail = body?.error?.message || body?.message || '';
+    } catch { /* ignore */ }
+
+    const msg = this._friendlyMessage(response.status, detail);
+    const err = new Error(msg);
+    err.status = response.status;
+    err.detail = detail;
+    return err;
+  }
+
+  /**
+   * Convert HTTP status to Thai-friendly message
+   */
+  _friendlyMessage(status, detail) {
+    if (status === 401 || status === 403) return 'API Key ไม่ถูกต้องหรือหมดอายุ — กรุณาตรวจสอบ API Key หรือเปลี่ยน Provider';
+    if (status === 429) return 'ใช้งานถี่เกินไป — ระบบกำลังลองใหม่อัตโนมัติ กรุณารอสักครู่';
+    if (status === 404) return 'โมเดล AI ไม่พร้อมใช้งาน — กรุณาลองใหม่หรือเปลี่ยน Provider';
+    if (status >= 500) return 'เซิร์ฟเวอร์ AI มีปัญหาชั่วคราว — กรุณาลองใหม่อีกครั้ง';
+    if (detail) return detail;
+    return `เกิดข้อผิดพลาดในการเชื่อมต่อ AI (${status}) — กรุณาลองใหม่`;
   }
 }

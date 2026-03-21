@@ -43,14 +43,10 @@ export class DeepSeekProvider extends BaseProvider {
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${this.apiKey}` },
         body: JSON.stringify(payload),
       });
-      if (!response.ok) {
-        const err = new Error(`HTTP ${response.status}`);
-        err.status = response.status;
-        throw err;
-      }
+      if (!response.ok) throw await this._parseErrorResponse(response);
       const data = await response.json();
       const text = data.choices?.[0]?.message?.content;
-      if (!text) throw new Error('No response text from DeepSeek');
+      if (!text) throw new Error('AI ไม่ส่งข้อมูลกลับมา กรุณาลองใหม่อีกครั้ง');
       return text;
     });
   }

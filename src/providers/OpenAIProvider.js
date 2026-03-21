@@ -19,19 +19,12 @@ export class OpenAIProvider extends BaseProvider {
 
     const userParts = [];
     for (const content of contents) {
-      if (content.type === 'text') {
-        userParts.push({ type: 'text', text: content.data });
-      } else if (content.type === 'image') {
-        userParts.push({ type: 'image_url', image_url: { url: content.data, detail: 'high' } });
-      } else if (content.type === 'pdf') {
-        userParts.push({ type: 'text', text: '[PDF Document Attached]' });
-        if (content.extractedText) userParts.push({ type: 'text', text: content.extractedText });
-      } else if (content.type === 'word') {
-        userParts.push({ type: 'text', text: content.data });
-      }
+      if (content.type === 'text') userParts.push({ type: 'text', text: content.data });
+      else if (content.type === 'image') userParts.push({ type: 'image_url', image_url: { url: content.data, detail: 'high' } });
+      else if (content.type === 'pdf') userParts.push({ type: 'text', text: content.extractedText || '[PDF Document Attached]' });
+      else if (content.type === 'word') userParts.push({ type: 'text', text: content.data });
     }
     if (userParts.length === 0) userParts.push({ type: 'text', text: 'Please process the instruction above.' });
-
     messages.push({ role: 'user', content: userParts });
 
     const payload = { model: this.model, messages, max_tokens: 16000 };
@@ -43,14 +36,10 @@ export class OpenAIProvider extends BaseProvider {
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${this.apiKey}` },
         body: JSON.stringify(payload),
       });
-      if (!response.ok) {
-        const err = new Error(`HTTP ${response.status}`);
-        err.status = response.status;
-        throw err;
-      }
+      if (!response.ok) throw await this._parseErrorResponse(response);
       const data = await response.json();
       const text = data.choices?.[0]?.message?.content;
-      if (!text) throw new Error('No response text from OpenAI');
+      if (!text) throw new Error('AI ไม่ส่งข้อมูลกลับมา กรุณาลองใหม่อีกครั้ง');
       return text;
     });
   }
