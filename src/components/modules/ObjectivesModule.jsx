@@ -48,8 +48,9 @@ const ObjectivesModule = ({
       const data = await callApi(parts, { json: true, statusText: "กำลังวิเคราะห์จุดประสงค์เชิงพฤติกรรม (Bloom's/Dave's)..." });
       if (data?.units) setObjResults(data.units);
       else throw new Error('Invalid');
-    } catch {
-      onError('เกิดข้อผิดพลาดในการวิเคราะห์ไฟล์');
+    } catch (err) {
+      console.error('Objectives Error:', err);
+      onError(`เกิดข้อผิดพลาด: ${err.message || 'ไม่สามารถวิเคราะห์ไฟล์ได้'}`);
     }
   };
 

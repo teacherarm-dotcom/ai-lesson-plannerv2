@@ -35,8 +35,9 @@ const LearningOutcomesModule = ({
       const data = await callApi(parts, { json: true, statusText: 'กำลังวิเคราะห์เนื้อหาและเขียนผลลัพธ์การเรียนรู้...' });
       if (data?.units) setLoResults(data.units);
       else throw new Error('Invalid format');
-    } catch {
-      onError('เกิดข้อผิดพลาดในการวิเคราะห์ไฟล์');
+    } catch (err) {
+      console.error('LO Error:', err);
+      onError(`เกิดข้อผิดพลาด: ${err.message || 'ไม่สามารถวิเคราะห์ไฟล์ได้'}`);
     }
   };
 

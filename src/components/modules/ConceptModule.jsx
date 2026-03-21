@@ -46,8 +46,9 @@ const ConceptModule = ({
       const data = await callApi(parts, { json: true, statusText: 'กำลังวิเคราะห์และสรุปสาระสำคัญประจำหน่วย...' });
       if (data?.units) setConceptResults(data.units);
       else throw new Error('Invalid');
-    } catch {
-      onError('เกิดข้อผิดพลาดในการสร้างสาระสำคัญ');
+    } catch (err) {
+      console.error('Concept Error:', err);
+      onError(`เกิดข้อผิดพลาด: ${err.message || 'ไม่สามารถสร้างสาระสำคัญได้'}`);
     }
   };
 

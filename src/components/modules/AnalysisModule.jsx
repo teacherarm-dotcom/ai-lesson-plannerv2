@@ -173,8 +173,9 @@ const AnalysisModule = ({
       } else {
         throw new Error('No plan');
       }
-    } catch {
-      onError('เกิดข้อผิดพลาดในการสร้างแผน ลองกดสร้างใหม่อีกครั้ง');
+    } catch (err) {
+      console.error('Plan Error:', err);
+      onError(`เกิดข้อผิดพลาด: ${err.message || 'ไม่สามารถสร้างแผนได้'} — ลองกดสร้างใหม่อีกครั้ง`);
     }
   };
 
