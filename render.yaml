@@ -1,0 +1,7 @@
+services:
+  - type: web
+    name: ai-lesson-plannerv2
+    runtime: static
+    buildCommand: npm install && npm run build
+    staticPublishPath: ./dist
+    envVars: []
