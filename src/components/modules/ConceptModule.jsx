@@ -84,8 +84,13 @@ const ConceptModule = ({
   };
 
   const _doExportSummaryWord = () => {
+    console.log('[ExportSummary] conceptResults:', conceptResults?.length, 'loResults:', loResults?.length, 'compResults:', compResults?.length, 'objResults:', objResults?.length);
     const allUnits = mergeDataForExport();
-    if (allUnits.length === 0) return;
+    console.log('[ExportSummary] allUnits:', allUnits.length);
+    if (allUnits.length === 0) {
+      alert('ไม่พบข้อมูลสำหรับสร้างเอกสาร กรุณาตรวจสอบว่าได้สร้างข้อมูลครบทุกขั้นตอนแล้ว');
+      return;
+    }
     const renderList = (list) => (!list?.length ? '<li>-</li>' : list.map((i) => `<li>${i}</li>`).join(''));
     const content = allUnits.map((unit, idx) => `
       <div><h3>หน่วยที่ ${idx + 1} ${unit.unitName}</h3>
@@ -107,7 +112,10 @@ const ConceptModule = ({
 
   const _doExportSummaryPdf = () => {
     const allUnits = mergeDataForExport();
-    if (allUnits.length === 0) return;
+    if (allUnits.length === 0) {
+      alert('ไม่พบข้อมูลสำหรับสร้างเอกสาร กรุณาตรวจสอบว่าได้สร้างข้อมูลครบทุกขั้นตอนแล้ว');
+      return;
+    }
     const renderList = (list) => (!list?.length ? '<li>-</li>' : list.map((i) => `<li>${i}</li>`).join(''));
     const content = allUnits.map((unit, idx) => `
       <div style="margin-bottom:30px;border-bottom:1px solid #ccc;padding-bottom:20px;">
