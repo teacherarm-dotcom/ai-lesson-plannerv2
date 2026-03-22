@@ -5,8 +5,10 @@ import { parseUnitTable } from '../../utils/markdownTable';
 const EditableUnitTable = ({ markdown, onSave, courseCode }) => {
   const [units, setUnits] = useState([]);
   const [editing, setEditing] = useState(false);
-  const [assessTheory, setAssessTheory] = useState('');
-  const [assessPractice, setAssessPractice] = useState('');
+  const [showAssessment, setShowAssessment] = useState(true);
+
+  // Course level
+  const isAdvanced = courseCode && courseCode.trim().startsWith('3');
 
   useEffect(() => {
     if (markdown) {
@@ -16,9 +18,28 @@ const EditableUnitTable = ({ markdown, onSave, courseCode }) => {
 
   if (units.length === 0) return null;
 
-  // Course level
-  const isAdvanced = courseCode && courseCode.trim().startsWith('3');
-  const totalWeeks = isAdvanced ? 15 : 18;
+  // Calculate theory/practice per week from ratio (from first unit or courseCode pattern)
+  const getWeeklyHours = () => {
+    // Try to detect from units: find most common theory/practice values
+    const theories = units.map(u => parseInt(u.theory) || 0).filter(v => v > 0);
+    const practices = units.map(u => parseInt(u.practice) || 0).filter(v => v > 0);
+    // Use minimum non-zero values as likely per-week hours
+    const minT = theories.length > 0 ? Math.min(...theories) : 2;
+    const minP = practices.length > 0 ? Math.min(...practices) : 2;
+    return { weeklyTheory: minT, weeklyPractice: minP };
+  };
+
+  const { weeklyTheory, weeklyPractice } = getWeeklyHours();
+
+  // Assessment = 1 week
+  const assessTheory = showAssessment ? weeklyTheory : 0;
+  const assessPractice = showAssessment ? weeklyPractice : 0;
+  const assessTotal = assessTheory + assessPractice;
+
+  // Weeks: ปวช.=18, ปวส.=16 (with assessment) or 15 (without)
+  const totalWeeks = isAdvanced
+    ? (showAssessment ? 16 : 15)
+    : 18;
 
   const update = (idx, key, value) => {
     setUnits((prev) => prev.map((u, i) => (i === idx ? { ...u, [key]: value } : u)));
@@ -59,14 +80,9 @@ const EditableUnitTable = ({ markdown, onSave, courseCode }) => {
   const unitPractice = units.reduce((s, u) => s + (parseInt(u.practice) || 0), 0);
   const unitTotal = units.reduce((s, u) => s + (parseInt(u.total) || 0), 0);
 
-  // Assessment
-  const at = parseInt(assessTheory) || 0;
-  const ap = parseInt(assessPractice) || 0;
-  const assessTotal = at + ap;
-
   // Grand total
-  const grandTheory = unitTheory + at;
-  const grandPractice = unitPractice + ap;
+  const grandTheory = unitTheory + assessTheory;
+  const grandPractice = unitPractice + assessPractice;
   const grandTotal = unitTotal + assessTotal;
 
   return (
@@ -157,31 +173,40 @@ const EditableUnitTable = ({ markdown, onSave, courseCode }) => {
             ))}
 
             {/* Assessment row */}
-            <tr className="bg-amber-50 border-t-2 border-amber-300">
-              <td colSpan={editing ? 3 : 2} className="px-3 py-2.5 text-sm font-bold text-amber-800 text-center">
-                ประเมินผลลัพธ์การเรียนรู้
-              </td>
-              <td className="px-2 py-2 text-center">
-                <input
-                  type="number" min="0" value={assessTheory}
-                  onChange={(e) => setAssessTheory(e.target.value)}
-                  placeholder="0"
-                  className="w-16 text-center border border-amber-300 rounded-lg py-1 px-1 text-sm focus:ring-2 focus:ring-amber-400 bg-white"
-                />
-              </td>
-              <td className="px-2 py-2 text-center">
-                <input
-                  type="number" min="0" value={assessPractice}
-                  onChange={(e) => setAssessPractice(e.target.value)}
-                  placeholder="0"
-                  className="w-16 text-center border border-amber-300 rounded-lg py-1 px-1 text-sm focus:ring-2 focus:ring-amber-400 bg-white"
-                />
-              </td>
-              <td className="px-3 py-2.5 text-sm font-bold text-amber-800 text-center">
-                {assessTotal > 0 ? assessTotal : '-'}
-              </td>
-              {editing && <td></td>}
-            </tr>
+            {showAssessment && (
+              <tr className="bg-amber-50 border-t-2 border-amber-300">
+                <td colSpan={editing ? 3 : 2} className="px-3 py-2.5 text-sm font-bold text-amber-800">
+                  <div className="flex items-center justify-between">
+                    <span>ประเมินผลลัพธ์การเรียนรู้ (1 สัปดาห์)</span>
+                    <button
+                      onClick={() => setShowAssessment(false)}
+                      className="text-red-400 hover:text-red-600 p-1 rounded hover:bg-red-50 transition"
+                      title="ลบแถวประเมินผลลัพธ์การเรียนรู้"
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
+                </td>
+                <td className="px-3 py-2.5 text-sm font-bold text-amber-800 text-center">{assessTheory}</td>
+                <td className="px-3 py-2.5 text-sm font-bold text-amber-800 text-center">{assessPractice}</td>
+                <td className="px-3 py-2.5 text-sm font-bold text-amber-800 text-center">{assessTotal}</td>
+                {editing && <td></td>}
+              </tr>
+            )}
+
+            {/* Re-add assessment button (if deleted) */}
+            {!showAssessment && (
+              <tr className="bg-gray-50 border-t border-gray-200">
+                <td colSpan={editing ? 7 : 5} className="px-3 py-2 text-center">
+                  <button
+                    onClick={() => setShowAssessment(true)}
+                    className="text-xs text-amber-600 hover:text-amber-800 font-medium flex items-center gap-1 mx-auto"
+                  >
+                    <Plus size={13} /> เพิ่มแถวประเมินผลลัพธ์การเรียนรู้
+                  </button>
+                </td>
+              </tr>
+            )}
           </tbody>
 
           {/* Grand total footer */}

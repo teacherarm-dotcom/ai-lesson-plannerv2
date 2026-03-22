@@ -84,7 +84,8 @@ const CompetencyModule = ({
       `<table><thead><tr><th width="10%">ที่</th><th width="30%">หน่วยการเรียนรู้</th><th>สมรรถนะประจำหน่วย</th></tr></thead><tbody>${rows}</tbody></table>`,
     );
   };
-  const exportWord = () => dl(_doExportWord);
+  const _meta = { module: 'สมรรถนะประจำหน่วย', courseCode: formData.courseCode || '', courseName: formData.courseName || '' };
+  const exportWord = () => dl(_doExportWord, _meta);
 
   const _doExportPdf = () => {
     if (!compResults) return;
@@ -98,7 +99,7 @@ const CompetencyModule = ({
       `<table><thead><tr><th width="10%">ที่</th><th width="30%">หน่วยการเรียนรู้</th><th>สมรรถนะประจำหน่วย</th></tr></thead><tbody>${rows}</tbody></table>`,
     );
   };
-  const exportPdf = () => dl(_doExportPdf);
+  const exportPdf = () => dl(_doExportPdf, _meta);
 
   // Safe render of competency items
   const renderCompetencyList = (competencies) => {

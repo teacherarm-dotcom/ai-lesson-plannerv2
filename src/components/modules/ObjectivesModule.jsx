@@ -69,7 +69,8 @@ const ObjectivesModule = ({
     ).join('');
     createWordDoc(`จุดประสงค์เชิงพฤติกรรม_${formData.courseCode}`, `<table><thead><tr><th rowspan="2">ที่</th><th rowspan="2">หน่วยการเรียนรู้</th><th colspan="4">จุดประสงค์เชิงพฤติกรรม</th></tr><tr><th>พุทธิพิสัย</th><th>ทักษะพิสัย</th><th>จิตพิสัย</th><th>การประยุกต์ใช้</th></tr></thead><tbody>${rows}</tbody></table>`);
   };
-  const exportWord = () => dl(_doExportWord);
+  const _meta = { module: 'จุดประสงค์เชิงพฤติกรรม', courseCode: formData.courseCode || '', courseName: formData.courseName || '' };
+  const exportWord = () => dl(_doExportWord, _meta);
 
   const _doExportPdf = () => {
     if (!objResults) return;
@@ -78,7 +79,7 @@ const ObjectivesModule = ({
     ).join('');
     printToPdf(`จุดประสงค์เชิงพฤติกรรม ${formData.courseCode}`, `<table><thead><tr><th width="8%">ที่</th><th width="25%">หน่วยการเรียนรู้</th><th>จุดประสงค์เชิงพฤติกรรม (4 ด้าน)</th></tr></thead><tbody>${rows}</tbody></table>`);
   };
-  const exportPdf = () => dl(_doExportPdf);
+  const exportPdf = () => dl(_doExportPdf, _meta);
 
   return (
     <div className="bg-white rounded-2xl shadow-xl p-6 md:p-8 min-h-[80vh]">

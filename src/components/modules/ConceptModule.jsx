@@ -58,14 +58,16 @@ const ConceptModule = ({
     const rows = conceptResults.map((item, idx) => `<tr><td style="text-align:center;vertical-align:top;">${idx + 1}</td><td style="vertical-align:top;">${item.unitName}</td><td style="vertical-align:top;">${item.concept}</td></tr>`).join('');
     createWordDoc(`เนื้อหาสาระ_${formData.courseCode}`, `<table><thead><tr><th width="10%">ที่</th><th width="30%">หน่วยการเรียนรู้</th><th>เนื้อหาสาระ (Key Concept)</th></tr></thead><tbody>${rows}</tbody></table>`);
   };
-  const exportWord = () => dl(_doExportWord);
+  const _metaConcept = { module: 'เนื้อหาสาระ', courseCode: formData.courseCode || '', courseName: formData.courseName || '' };
+  const _metaSummary = { module: 'สรุปรายวิชา', courseCode: formData.courseCode || '', courseName: formData.courseName || '' };
+  const exportWord = () => dl(_doExportWord, _metaConcept);
 
   const _doExportPdf = () => {
     if (!conceptResults) return;
     const rows = conceptResults.map((item, idx) => `<tr><td class="text-center">${idx + 1}</td><td>${item.unitName}</td><td>${item.concept}</td></tr>`).join('');
     printToPdf(`เนื้อหาสาระ ${formData.courseCode}`, `<table><thead><tr><th width="10%">ที่</th><th width="30%">หน่วยการเรียนรู้</th><th>เนื้อหาสาระ (Key Concept)</th></tr></thead><tbody>${rows}</tbody></table>`);
   };
-  const exportPdf = () => dl(_doExportPdf);
+  const exportPdf = () => dl(_doExportPdf, _metaConcept);
 
   // --- Full Syllabus Export ---
   const mergeDataForExport = () => {
@@ -99,7 +101,7 @@ const ConceptModule = ({
     createWordDoc(`Full_Syllabus_${formData.courseCode}`, `<h2 style="text-align:center;">เอกสารสรุปรายวิชา ${formData.courseCode} ${formData.courseName}</h2><hr/>${content}`);
   };
 
-  const exportSummaryWord = () => dl(_doExportSummaryWord);
+  const exportSummaryWord = () => dl(_doExportSummaryWord, _metaSummary);
 
   const _doExportSummaryPdf = () => {
     const allUnits = mergeDataForExport();
@@ -121,7 +123,7 @@ const ConceptModule = ({
     `).join('');
     printToPdf(`เอกสารสรุปรายวิชา: ${formData.courseName}`, content);
   };
-  const exportSummaryPdf = () => dl(_doExportSummaryPdf);
+  const exportSummaryPdf = () => dl(_doExportSummaryPdf, _metaSummary);
 
   return (
     <div className="bg-white rounded-2xl shadow-xl p-6 md:p-8 min-h-[80vh]">

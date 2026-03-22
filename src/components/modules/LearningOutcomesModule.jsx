@@ -48,13 +48,14 @@ const LearningOutcomesModule = ({
     const rows = loResults.map((item, idx) => `<tr><td style="text-align:center;">${idx + 1}</td><td>${item.unitName}</td><td>${item.outcome}</td></tr>`).join('');
     createWordDoc(`ผลลัพธ์การเรียนรู้_${formData.courseCode}`, `<table><thead><tr><th width="10%">ที่</th><th width="30%">หน่วยการเรียนรู้</th><th>ผลลัพธ์การเรียนรู้ (Unit Learning Outcome)</th></tr></thead><tbody>${rows}</tbody></table>`);
   };
-  const exportWord = () => dl(_doExportWord);
+  const _meta = { module: 'ผลลัพธ์การเรียนรู้', courseCode: formData.courseCode || '', courseName: formData.courseName || '' };
+  const exportWord = () => dl(_doExportWord, _meta);
   const _doExportPdf = () => {
     if (!loResults) return;
     const rows = loResults.map((item, idx) => `<tr><td class="text-center">${idx + 1}</td><td>${item.unitName}</td><td>${item.outcome}</td></tr>`).join('');
     printToPdf(`ผลลัพธ์การเรียนรู้ประจำหน่วย ${formData.courseCode}`, `<table><thead><tr><th width="10%">ที่</th><th width="30%">หน่วยการเรียนรู้</th><th>ผลลัพธ์การเรียนรู้</th></tr></thead><tbody>${rows}</tbody></table>`);
   };
-  const exportPdf = () => dl(_doExportPdf);
+  const exportPdf = () => dl(_doExportPdf, _meta);
 
   return (
     <div className="bg-white rounded-2xl shadow-xl p-6 md:p-8 min-h-[80vh]">

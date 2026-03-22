@@ -1,8 +1,17 @@
-import React, { useState, useEffect } from 'react';
-import { LayoutDashboard, Eye, Download, Sparkles, Users, Lock, Loader2, RefreshCw, Search, ChevronDown, ChevronUp, BarChart3, MapPin, Building2, GraduationCap, Calendar, Mail, FileText, TrendingUp, LogOut } from 'lucide-react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { LayoutDashboard, Eye, Download, Sparkles, Users, Lock, Loader2, RefreshCw, Search, ChevronDown, ChevronUp, BarChart3, MapPin, Building2, GraduationCap, Calendar, Mail, FileText, TrendingUp, LogOut, Filter } from 'lucide-react';
+import { printToPdf, createWordDoc } from '../../utils/exportHelpers';
 
 const ADMIN_CODE = '112233';
 const SHEET_URL = 'https://script.google.com/macros/s/AKfycbyxjQPVEx1FGPOvkCZ43V4STKKhY6VCgodo-A25ykPGiCWaIJGxDe8IvWBvNXcP7GLz/exec';
+
+const THAILAND_PROVINCES_BY_REGION = {
+  'ภาคเหนือ': ['เชียงใหม่','เชียงราย','ลำปาง','ลำพูน','แม่ฮ่องสอน','น่าน','พะเยา','แพร่','อุตรดิตถ์','ตาก','สุโขทัย','พิษณุโลก','พิจิตร','กำแพงเพชร','เพชรบูรณ์','นครสวรรค์','อุทัยธานี'],
+  'ภาคกลาง': ['กรุงเทพมหานคร','นนทบุรี','ปทุมธานี','สมุทรปราการ','สมุทรสาคร','สมุทรสงคราม','นครปฐม','พระนครศรีอยุธยา','อ่างทอง','ลพบุรี','สิงห์บุรี','ชัยนาท','สระบุรี','นครนายก','สุพรรณบุรี','กาญจนบุรี','ราชบุรี','เพชรบุรี','ประจวบคีรีขันธ์'],
+  'ภาคตะวันออกเฉียงเหนือ': ['นครราชสีมา','บุรีรัมย์','สุรินทร์','ศรีสะเกษ','อุบลราชธานี','ยโสธร','ชัยภูมิ','อำนาจเจริญ','หนองบัวลำภู','ขอนแก่น','อุดรธานี','เลย','หนองคาย','มหาสารคาม','ร้อยเอ็ด','กาฬสินธุ์','สกลนคร','นครพนม','มุกดาหาร','บึงกาฬ'],
+  'ภาคตะวันออก': ['ชลบุรี','ระยอง','จันทบุรี','ตราด','ฉะเชิงเทรา','ปราจีนบุรี','สระแก้ว'],
+  'ภาคใต้': ['นครศรีธรรมราช','กระบี่','พังงา','ภูเก็ต','สุราษฎร์ธานี','ระนอง','ชุมพร','สงขลา','สตูล','ตรัง','พัทลุง','ปัตตานี','ยะลา','นราธิวาส'],
+};
 
 const StatCard = ({ icon: Icon, label, value, color, bgColor }) => (
   <div className={`${bgColor} rounded-xl p-4 border`}>
@@ -29,6 +38,12 @@ const AdminDashboard = () => {
   const [sortField, setSortField] = useState('date');
   const [sortAsc, setSortAsc] = useState(false);
 
+  // Filter states
+  const [filterRegion, setFilterRegion] = useState('');
+  const [filterProvince, setFilterProvince] = useState('');
+  const [filterPosition, setFilterPosition] = useState('');
+  const [filterAffiliation, setFilterAffiliation] = useState('');
+
   const handleLogin = () => {
     if (code === ADMIN_CODE) {
       setIsLoggedIn(true);
@@ -47,7 +62,6 @@ const AdminDashboard = () => {
       setData(json);
     } catch (err) {
       console.error('Dashboard fetch error:', err);
-      // Try with no-cors fallback
       setData({ users: [], stats: [], summary: { totalUsers: 0, totalEvents: 0, totalVisits: 0, totalDownloads: 0, totalGenerations: 0 } });
     } finally {
       setLoading(false);
@@ -107,6 +121,22 @@ const AdminDashboard = () => {
   const users = data?.users || [];
   const stats = data?.stats || [];
 
+  // Compute unique users (dedup by firstName+lastName)
+  const uniqueUserCount = useMemo(() => {
+    const seen = new Set();
+    users.forEach((u) => {
+      const key = `${(u.firstName || '').trim()}|${(u.lastName || '').trim()}`.toLowerCase();
+      seen.add(key);
+    });
+    return seen.size;
+  }, [users]);
+
+  // Unique filter options from data
+  const uniqueRegions = useMemo(() => [...new Set(users.map(u => u.region).filter(Boolean))].sort(), [users]);
+  const uniqueProvinces = useMemo(() => [...new Set(users.map(u => u.province).filter(Boolean))].sort(), [users]);
+  const uniquePositions = useMemo(() => [...new Set(users.map(u => u.position).filter(Boolean))].sort(), [users]);
+  const uniqueAffiliations = useMemo(() => [...new Set(users.map(u => u.affiliation).filter(Boolean))].sort(), [users]);
+
   // Region summary
   const regionCounts = {};
   users.forEach((u) => { const r = u.region || 'ไม่ระบุ'; regionCounts[r] = (regionCounts[r] || 0) + 1; });
@@ -123,8 +153,14 @@ const AdminDashboard = () => {
   const provinceCounts = {};
   users.forEach((u) => { const p = u.province || 'ไม่ระบุ'; provinceCounts[p] = (provinceCounts[p] || 0) + 1; });
 
-  // Filter users by search
+  // Filter users by search + dropdown filters
   const filteredUsers = users.filter((u) => {
+    // Dropdown filters (AND logic)
+    if (filterRegion && u.region !== filterRegion) return false;
+    if (filterProvince && u.province !== filterProvince) return false;
+    if (filterPosition && u.position !== filterPosition) return false;
+    if (filterAffiliation && u.affiliation !== filterAffiliation) return false;
+    // Text search
     if (!searchTerm) return true;
     const term = searchTerm.toLowerCase();
     return [u.firstName, u.lastName, u.email, u.college, u.province, u.department, u.course]
@@ -167,11 +203,88 @@ const AdminDashboard = () => {
     );
   };
 
+  // Province heatmap color helper
+  const getProvinceColor = (count, maxCount) => {
+    if (count === 0 || maxCount === 0) return 'bg-gray-100 text-gray-400';
+    const ratio = count / maxCount;
+    if (ratio > 0.75) return 'bg-blue-800 text-white';
+    if (ratio > 0.5) return 'bg-blue-600 text-white';
+    if (ratio > 0.25) return 'bg-blue-400 text-white';
+    if (ratio > 0.1) return 'bg-blue-300 text-blue-900';
+    return 'bg-blue-100 text-blue-800';
+  };
+
+  // Export helpers
+  const buildExportTableHtml = (usersToExport) => {
+    const rows = usersToExport.map((u, idx) => `<tr>
+      <td>${idx + 1}</td>
+      <td>${u.date || ''}</td>
+      <td>${u.prefix || ''}${u.firstName || ''} ${u.lastName || ''}</td>
+      <td>${u.email || ''}</td>
+      <td>${u.position || ''}${u.academicRank && u.academicRank !== 'ไม่มี' ? ` (${u.academicRank})` : ''}</td>
+      <td>${u.college || ''}</td>
+      <td>${u.province || ''}</td>
+      <td>${u.region || ''} / ${u.affiliation || ''}</td>
+      <td>${u.course || ''}</td>
+    </tr>`).join('');
+
+    return `<table>
+      <thead><tr>
+        <th>#</th><th>วันที่</th><th>ชื่อ-นามสกุล</th><th>อีเมล</th>
+        <th>ตำแหน่ง/วิทยฐานะ</th><th>วิทยาลัย</th><th>จังหวัด</th>
+        <th>ภาค/สังกัด</th><th>รายวิชา</th>
+      </tr></thead>
+      <tbody>${rows}</tbody>
+    </table>`;
+  };
+
+  const handleExportExcel = () => {
+    const tableHtml = buildExportTableHtml(sortedUsers);
+    const fullHtml = `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
+<head><meta charset="utf-8">
+<!--[if gte mso 9]><xml><x:ExcelWorkbook><x:ExcelWorksheets><x:ExcelWorksheet>
+<x:Name>Users</x:Name><x:WorksheetOptions><x:DisplayGridlines/></x:WorksheetOptions>
+</x:ExcelWorksheet></x:ExcelWorksheets></x:ExcelWorkbook></xml><![endif]-->
+<style>table{border-collapse:collapse;}th,td{border:1px solid #000;padding:5px;}</style>
+</head><body>${tableHtml}</body></html>`;
+
+    const blob = new Blob(['\ufeff', fullHtml], { type: 'application/vnd.ms-excel' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `admin_dashboard_users_${new Date().toISOString().slice(0, 10)}.xls`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
+  const handleExportPdf = () => {
+    const filterInfo = [
+      filterRegion && `ภาค: ${filterRegion}`,
+      filterProvince && `จังหวัด: ${filterProvince}`,
+      filterPosition && `ตำแหน่ง: ${filterPosition}`,
+      filterAffiliation && `สังกัด: ${filterAffiliation}`,
+      searchTerm && `ค้นหา: ${searchTerm}`,
+    ].filter(Boolean).join(' | ');
+
+    const headerHtml = filterInfo
+      ? `<p style="font-size:12px;color:#666;margin-bottom:10px;">ตัวกรอง: ${filterInfo}</p>`
+      : '';
+    const summaryHtml = `<p style="font-size:13px;margin-bottom:10px;">จำนวนทั้งหมด: ${sortedUsers.length} รายการ</p>`;
+    const tableHtml = buildExportTableHtml(sortedUsers);
+
+    printToPdf('รายงานผู้ใช้งาน AI ช่วยทำแผนการสอน', headerHtml + summaryHtml + tableHtml);
+  };
+
   const tabs = [
     { id: 'overview', label: 'ภาพรวม', icon: BarChart3 },
     { id: 'users', label: 'ผู้ใช้งาน', icon: Users },
     { id: 'activity', label: 'กิจกรรม', icon: TrendingUp },
   ];
+
+  // Province heatmap data
+  const maxProvinceCount = Math.max(...Object.values(provinceCounts), 1);
 
   return (
     <div className="bg-white rounded-2xl shadow-xl p-4 md:p-6 min-h-[80vh]">
@@ -194,11 +307,12 @@ const AdminDashboard = () => {
       </div>
 
       {/* Stat Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
-        <StatCard icon={Users} label="ผู้ใช้งานทั้งหมด" value={summary.totalUsers || 0} color="text-blue-600" bgColor="bg-blue-50 border-blue-200" />
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-6">
+        <StatCard icon={Users} label="ผู้ใช้ทั้งหมด (ไม่ซ้ำ)" value={uniqueUserCount} color="text-blue-600" bgColor="bg-blue-50 border-blue-200" />
+        <StatCard icon={Download} label="จำนวนครั้ง Download" value={summary.totalDownloads || 0} color="text-orange-600" bgColor="bg-orange-50 border-orange-200" />
         <StatCard icon={Eye} label="เข้าใช้งาน" value={summary.totalVisits || 0} color="text-green-600" bgColor="bg-green-50 border-green-200" />
         <StatCard icon={Sparkles} label="สร้างแผนฯ" value={summary.totalGenerations || 0} color="text-purple-600" bgColor="bg-purple-50 border-purple-200" />
-        <StatCard icon={Download} label="ดาวน์โหลด" value={summary.totalDownloads || 0} color="text-orange-600" bgColor="bg-orange-50 border-orange-200" />
+        <StatCard icon={FileText} label="ลงทะเบียนทั้งหมด" value={users.length} color="text-teal-600" bgColor="bg-teal-50 border-teal-200" />
       </div>
 
       {/* Tabs */}
@@ -218,30 +332,126 @@ const AdminDashboard = () => {
 
       {/* Tab Content */}
       {activeTab === 'overview' && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="bg-gray-50 rounded-xl p-4 border border-gray-200">
-            <h3 className="text-sm font-bold text-gray-700 mb-3 flex items-center gap-1.5"><MapPin size={14} className="text-blue-500" /> จำแนกตามภาค</h3>
-            {renderBarChart(regionCounts, 'bg-blue-500')}
+        <div className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="bg-gray-50 rounded-xl p-4 border border-gray-200">
+              <h3 className="text-sm font-bold text-gray-700 mb-3 flex items-center gap-1.5"><MapPin size={14} className="text-blue-500" /> จำแนกตามภาค</h3>
+              {renderBarChart(regionCounts, 'bg-blue-500')}
+            </div>
+            <div className="bg-gray-50 rounded-xl p-4 border border-gray-200">
+              <h3 className="text-sm font-bold text-gray-700 mb-3 flex items-center gap-1.5"><Building2 size={14} className="text-green-500" /> จำแนกตามสังกัด</h3>
+              {renderBarChart(affiliationCounts, 'bg-green-500')}
+            </div>
+            <div className="bg-gray-50 rounded-xl p-4 border border-gray-200">
+              <h3 className="text-sm font-bold text-gray-700 mb-3 flex items-center gap-1.5"><GraduationCap size={14} className="text-purple-500" /> จำแนกตามตำแหน่ง</h3>
+              {renderBarChart(positionCounts, 'bg-purple-500')}
+            </div>
+            <div className="bg-gray-50 rounded-xl p-4 border border-gray-200">
+              <h3 className="text-sm font-bold text-gray-700 mb-3 flex items-center gap-1.5"><MapPin size={14} className="text-orange-500" /> จำแนกตามจังหวัด (Top 10)</h3>
+              {renderBarChart(Object.fromEntries(Object.entries(provinceCounts).sort((a, b) => b[1] - a[1]).slice(0, 10)), 'bg-orange-500')}
+            </div>
           </div>
+
+          {/* Thailand Province Heatmap */}
           <div className="bg-gray-50 rounded-xl p-4 border border-gray-200">
-            <h3 className="text-sm font-bold text-gray-700 mb-3 flex items-center gap-1.5"><Building2 size={14} className="text-green-500" /> จำแนกตามสังกัด</h3>
-            {renderBarChart(affiliationCounts, 'bg-green-500')}
-          </div>
-          <div className="bg-gray-50 rounded-xl p-4 border border-gray-200">
-            <h3 className="text-sm font-bold text-gray-700 mb-3 flex items-center gap-1.5"><GraduationCap size={14} className="text-purple-500" /> จำแนกตามตำแหน่ง</h3>
-            {renderBarChart(positionCounts, 'bg-purple-500')}
-          </div>
-          <div className="bg-gray-50 rounded-xl p-4 border border-gray-200">
-            <h3 className="text-sm font-bold text-gray-700 mb-3 flex items-center gap-1.5"><MapPin size={14} className="text-orange-500" /> จำแนกตามจังหวัด (Top 10)</h3>
-            {renderBarChart(Object.fromEntries(Object.entries(provinceCounts).sort((a, b) => b[1] - a[1]).slice(0, 10)), 'bg-orange-500')}
+            <h3 className="text-sm font-bold text-gray-700 mb-3 flex items-center gap-1.5">
+              <MapPin size={14} className="text-blue-500" /> แผนที่ความหนาแน่นผู้ใช้ตามจังหวัด
+            </h3>
+            {/* Color legend */}
+            <div className="flex items-center gap-2 mb-4 text-xs text-gray-500">
+              <span>น้อย</span>
+              <div className="flex gap-0.5">
+                <div className="w-6 h-4 rounded bg-gray-100 border border-gray-200"></div>
+                <div className="w-6 h-4 rounded bg-blue-100"></div>
+                <div className="w-6 h-4 rounded bg-blue-300"></div>
+                <div className="w-6 h-4 rounded bg-blue-400"></div>
+                <div className="w-6 h-4 rounded bg-blue-600"></div>
+                <div className="w-6 h-4 rounded bg-blue-800"></div>
+              </div>
+              <span>มาก</span>
+            </div>
+            {Object.entries(THAILAND_PROVINCES_BY_REGION).map(([region, provinces]) => (
+              <div key={region} className="mb-4">
+                <h4 className="text-xs font-bold text-gray-600 mb-2 flex items-center gap-1.5">
+                  <span className="inline-block w-2 h-2 rounded-full bg-blue-500"></span>
+                  {region}
+                  <span className="font-normal text-gray-400">({provinces.reduce((sum, p) => sum + (provinceCounts[p] || 0), 0)} คน)</span>
+                </h4>
+                <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-1.5">
+                  {provinces.map((province) => {
+                    const count = provinceCounts[province] || 0;
+                    const colorClass = getProvinceColor(count, maxProvinceCount);
+                    return (
+                      <div
+                        key={province}
+                        className={`${colorClass} rounded-lg px-2 py-1.5 text-center border border-gray-200 transition-all hover:scale-105 cursor-default`}
+                        title={`${province}: ${count} คน`}
+                      >
+                        <div className="text-[10px] leading-tight truncate">{province}</div>
+                        <div className="text-xs font-bold">{count}</div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       )}
 
       {activeTab === 'users' && (
         <div>
-          <div className="mb-3 flex items-center gap-2">
-            <div className="relative flex-1">
+          {/* Filters */}
+          <div className="mb-3 p-3 bg-gray-50 rounded-xl border border-gray-200">
+            <div className="flex items-center gap-1.5 mb-2 text-xs font-bold text-gray-600">
+              <Filter size={12} /> ตัวกรอง
+            </div>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+              <select
+                value={filterRegion}
+                onChange={(e) => setFilterRegion(e.target.value)}
+                className="w-full px-2 py-1.5 border border-gray-300 rounded-lg text-xs focus:ring-2 focus:ring-blue-500 bg-white"
+              >
+                <option value="">ภาค (ทั้งหมด)</option>
+                {uniqueRegions.map((r) => <option key={r} value={r}>{r}</option>)}
+              </select>
+              <select
+                value={filterProvince}
+                onChange={(e) => setFilterProvince(e.target.value)}
+                className="w-full px-2 py-1.5 border border-gray-300 rounded-lg text-xs focus:ring-2 focus:ring-blue-500 bg-white"
+              >
+                <option value="">จังหวัด (ทั้งหมด)</option>
+                {uniqueProvinces.map((p) => <option key={p} value={p}>{p}</option>)}
+              </select>
+              <select
+                value={filterPosition}
+                onChange={(e) => setFilterPosition(e.target.value)}
+                className="w-full px-2 py-1.5 border border-gray-300 rounded-lg text-xs focus:ring-2 focus:ring-blue-500 bg-white"
+              >
+                <option value="">ตำแหน่ง (ทั้งหมด)</option>
+                {uniquePositions.map((p) => <option key={p} value={p}>{p}</option>)}
+              </select>
+              <select
+                value={filterAffiliation}
+                onChange={(e) => setFilterAffiliation(e.target.value)}
+                className="w-full px-2 py-1.5 border border-gray-300 rounded-lg text-xs focus:ring-2 focus:ring-blue-500 bg-white"
+              >
+                <option value="">สังกัด (ทั้งหมด)</option>
+                {uniqueAffiliations.map((a) => <option key={a} value={a}>{a}</option>)}
+              </select>
+            </div>
+            {(filterRegion || filterProvince || filterPosition || filterAffiliation) && (
+              <button
+                onClick={() => { setFilterRegion(''); setFilterProvince(''); setFilterPosition(''); setFilterAffiliation(''); }}
+                className="mt-2 text-xs text-blue-600 hover:text-blue-800 underline"
+              >
+                ล้างตัวกรองทั้งหมด
+              </button>
+            )}
+          </div>
+
+          <div className="mb-3 flex flex-col sm:flex-row items-start sm:items-center gap-2">
+            <div className="relative flex-1 w-full">
               <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
               <input
                 type="text"
@@ -251,7 +461,21 @@ const AdminDashboard = () => {
                 className="w-full pl-9 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
               />
             </div>
-            <span className="text-xs text-gray-500 whitespace-nowrap">{sortedUsers.length} รายการ</span>
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-gray-500 whitespace-nowrap">{sortedUsers.length} รายการ</span>
+              <button
+                onClick={handleExportExcel}
+                className="bg-green-50 text-green-700 px-3 py-2 rounded-lg hover:bg-green-100 text-xs font-medium flex items-center gap-1.5 border border-green-200 whitespace-nowrap"
+              >
+                <FileText size={13} /> Excel
+              </button>
+              <button
+                onClick={handleExportPdf}
+                className="bg-red-50 text-red-700 px-3 py-2 rounded-lg hover:bg-red-100 text-xs font-medium flex items-center gap-1.5 border border-red-200 whitespace-nowrap"
+              >
+                <FileText size={13} /> PDF
+              </button>
+            </div>
           </div>
           <div className="overflow-x-auto border border-gray-200 rounded-xl">
             <table className="min-w-full divide-y divide-gray-200 text-xs">

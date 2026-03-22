@@ -58,6 +58,7 @@ export const logDownloadToSheet = (userInfo, meta = {}) => {
 export const useDownloadWithUserInfo = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [pendingDownload, setPendingDownload] = useState(null);
+  const [pendingMeta, setPendingMeta] = useState(null);
   const triggerDownload = (downloadFn, meta) => {
     const existing = getStoredUserInfo();
     if (existing) {
@@ -66,17 +67,19 @@ export const useDownloadWithUserInfo = () => {
       downloadFn();
     } else {
       setPendingDownload(() => downloadFn);
+      setPendingMeta(meta || null);
       setIsOpen(true);
     }
   };
   const handleSubmit = (info) => {
     setStoredUserInfo(info);
-    logDownloadToSheet(info);
+    logDownloadToSheet(info, pendingMeta);
     trackDownload();
     setIsOpen(false);
     if (pendingDownload) { pendingDownload(); setPendingDownload(null); }
+    setPendingMeta(null);
   };
-  const handleClose = () => { setIsOpen(false); setPendingDownload(null); };
+  const handleClose = () => { setIsOpen(false); setPendingDownload(null); setPendingMeta(null); };
   return { isOpen, triggerDownload, handleSubmit, handleClose };
 };
 
@@ -156,7 +159,10 @@ const UserInfoModal = ({ isOpen, onSubmit, onClose }) => {
 
               {/* Prefix */}
               <Field icon={User} label="คำนำหน้า" required>
-                <CardRadio options={PREFIXES} value={form.prefix} onChange={(v) => u('prefix', v)} cols={4} />
+                <select value={form.prefix} onChange={(e) => u('prefix', e.target.value)} className={inputCls}>
+                  <option value="">-- เลือกคำนำหน้า --</option>
+                  {PREFIXES.map((p) => <option key={p} value={p}>{p}</option>)}
+                </select>
                 {form.prefix === 'อื่นๆ' && (
                   <input type="text" value={form.prefixOther} onChange={(e) => u('prefixOther', e.target.value)}
                     placeholder="ระบุคำนำหน้า" className={`${inputCls} mt-2`} />
@@ -197,7 +203,10 @@ const UserInfoModal = ({ isOpen, onSubmit, onClose }) => {
 
               {/* Academic Rank */}
               <Field icon={Award} label="วิทยฐานะ" required>
-                <CardRadio options={ACADEMIC_RANKS} value={form.academicRank} onChange={(v) => u('academicRank', v)} cols={3} />
+                <select value={form.academicRank} onChange={(e) => u('academicRank', e.target.value)} className={inputCls}>
+                  <option value="">-- เลือกวิทยฐานะ --</option>
+                  {ACADEMIC_RANKS.map((r) => <option key={r} value={r}>{r}</option>)}
+                </select>
               </Field>
 
               <button onClick={() => setStep(2)} disabled={!s1ok}

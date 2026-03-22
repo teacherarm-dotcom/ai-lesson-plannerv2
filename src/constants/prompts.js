@@ -158,7 +158,7 @@ Structure per Unit (โครงสร้างต่อหน่วย):
    * Quantity: เขียนข้อเดียว (One item only)
 
 4. ความสามารถประยุกต์ใช้และรับผิดชอบ (Application & Responsibility):
-   * Negative Constraint: ห้ามขึ้นต้นด้วยคำว่า "ปฏิบัติงาน" (Do NOT start with "Operate/Work")
+   * Negative Constraint: ห้ามมีคำว่า "ปฏิบัติงาน" ในจุดประสงค์โดยเด็ดขาด ไม่ว่าจะอยู่ตำแหน่งใดก็ตาม (Do NOT use the word "ปฏิบัติงาน" anywhere)
    * Action: ระบุการกระทำไปเลย (State the action directly e.g. "ประยุกต์ใช้...", "เลือกใช้...", "คำนวณ...")
    * Scope: แสดงความสามารถในการนำ K และ S ไปประยุกต์ใช้ในงานอาชีพ
    * Quantity: เขียนข้อเดียว (One item only)

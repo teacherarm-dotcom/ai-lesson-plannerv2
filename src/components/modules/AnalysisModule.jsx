@@ -204,10 +204,11 @@ const AnalysisModule = ({
 
   // Wrap all downloads with user info check
   const dl = triggerDownload;
-  const handleExportWord = () => dl(_doExportWord);
-  const handleSavePdf = () => dl(_doSavePdf);
-  const handleExportUnitsWord = () => dl(_doExportUnitsWord);
-  const handleExportUnitsPdf = () => dl(_doExportUnitsPdf);
+  const _meta = { module: 'วิเคราะห์งาน', courseCode: formData.courseCode || '', courseName: formData.courseName || '' };
+  const handleExportWord = () => dl(_doExportWord, _meta);
+  const handleSavePdf = () => dl(_doSavePdf, _meta);
+  const handleExportUnitsWord = () => dl(_doExportUnitsWord, _meta);
+  const handleExportUnitsPdf = () => dl(_doExportUnitsPdf, _meta);
 
   const buildUnitExportHtml = (rowsHtml, totalTheory, totalPractice, totalAll) => `
     <table>
