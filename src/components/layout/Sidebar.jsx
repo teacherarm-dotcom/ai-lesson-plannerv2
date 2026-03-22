@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { BookOpen, ChevronRight, Facebook, Youtube, Globe, Instagram, Eye, Download, Sparkles } from 'lucide-react';
+import { BookOpen, ChevronRight, Facebook, Youtube, Globe, Instagram, Eye, Download, Sparkles, Trash2 } from 'lucide-react';
 import { MENU_ITEMS } from '../../constants/menuItems.jsx';
 import { getUsageStats, trackVisit } from '../../utils/usageStats';
 
@@ -78,6 +78,25 @@ const Sidebar = ({ activeMenu, setActiveMenu, onMobileClose }) => {
           <StatItem icon={Sparkles} label="สร้างแผนฯ" value={stats.totalGenerations} color="text-purple-500" />
           <StatItem icon={Download} label="ดาวน์โหลด" value={stats.totalDownloads} color="text-green-500" />
         </div>
+      </div>
+
+      {/* Clear Cache Button */}
+      <div className="mt-3 px-1">
+        <button
+          onClick={() => {
+            if (window.confirm('ต้องการล้างข้อมูลทั้งหมดหรือไม่?\n\n- API Key\n- ข้อมูลผู้ใช้\n- สถิติการใช้งาน\n- แคชทั้งหมด\n\nหน้าเว็บจะรีโหลดใหม่')) {
+              localStorage.clear();
+              sessionStorage.clear();
+              if ('caches' in window) {
+                caches.keys().then((names) => names.forEach((name) => caches.delete(name)));
+              }
+              window.location.reload();
+            }
+          }}
+          className="w-full flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs text-red-500 hover:bg-red-50 hover:text-red-700 border border-transparent hover:border-red-200 transition"
+        >
+          <Trash2 size={13} /> ล้างข้อมูลแคชทั้งหมด
+        </button>
       </div>
 
       {/* Footer */}
