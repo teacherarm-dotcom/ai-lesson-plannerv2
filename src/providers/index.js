@@ -2,12 +2,10 @@ import { GeminiProvider } from './GeminiProvider';
 import { OpenAIProvider } from './OpenAIProvider';
 import { ClaudeProvider } from './ClaudeProvider';
 import { DeepSeekProvider } from './DeepSeekProvider';
-import { OpenRouterProvider } from './OpenRouterProvider';
 
-const PROVIDERS = [OpenRouterProvider, GeminiProvider, OpenAIProvider, ClaudeProvider, DeepSeekProvider];
+const PROVIDERS = [GeminiProvider, OpenAIProvider, ClaudeProvider, DeepSeekProvider];
 
-// Default provider is now OpenRouter (hardcoded key, no user input needed)
-export const DEFAULT_PROVIDER = 'openrouter';
+export const DEFAULT_PROVIDER = 'gemini';
 
 export function getAvailableProviders() {
   return PROVIDERS.map((P) => ({
@@ -22,8 +20,6 @@ export function getAvailableProviders() {
 export function createProvider(providerId, apiKey) {
   const ProviderClass = PROVIDERS.find((P) => P.providerId === providerId);
   if (!ProviderClass) throw new Error(`Unknown AI provider: ${providerId}`);
-  // OpenRouter uses hardcoded key, ignore apiKey param
-  if (providerId === 'openrouter') return new ProviderClass();
   return new ProviderClass(apiKey);
 }
 

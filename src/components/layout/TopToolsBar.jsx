@@ -1,8 +1,15 @@
 import React from 'react';
-import { Youtube, Scissors } from 'lucide-react';
+import { Youtube, Scissors, Settings } from 'lucide-react';
 
-const TopToolsBar = ({ onOpenPdfTool }) => (
+const TopToolsBar = ({ onOpenPdfTool, onOpenApiKeyModal, providerName }) => (
   <div className="flex justify-end mb-4 gap-3 flex-wrap">
+    <button
+      onClick={onOpenApiKeyModal}
+      className="bg-blue-50 border border-blue-200 text-blue-700 hover:bg-blue-100 px-3 py-2 rounded-lg text-sm font-medium transition shadow-sm flex items-center gap-1.5"
+    >
+      <Settings size={14} />
+      ตั้งค่า AI {providerName ? `(${providerName})` : ''}
+    </button>
     <a
       href="https://youtu.be/FjoTMFQMmnI"
       target="_blank"

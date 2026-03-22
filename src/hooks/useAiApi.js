@@ -12,11 +12,6 @@ export const getStoredApiKey = (providerId) => localStorage.getItem(STORAGE_PREF
 export const setStoredApiKey = (providerId, key) => localStorage.setItem(STORAGE_PREFIX + providerId, key);
 
 /**
- * Check if a provider needs user API key (OpenRouter doesn't)
- */
-export const providerNeedsKey = (providerId) => providerId !== 'openrouter';
-
-/**
  * Convert Gemini-style "parts" array into the provider-agnostic "contents" format.
  */
 function convertPartsToContents(parts) {
@@ -53,20 +48,14 @@ export const useAiApi = (providerId, apiKey) => {
   const [loadingText, setLoadingText] = useState('');
 
   const provider = useMemo(() => {
-    if (!providerId) return null;
-    // OpenRouter doesn't need apiKey from user
-    if (providerId === 'openrouter') {
-      try { return createProvider(providerId); } catch { return null; }
-    }
-    // Other providers need apiKey
-    if (!apiKey) return null;
+    if (!providerId || !apiKey) return null;
     try { return createProvider(providerId, apiKey); } catch { return null; }
   }, [providerId, apiKey]);
 
   const callApi = useCallback(
     async (parts, { json = false, statusText = '' } = {}) => {
       if (!provider) {
-        throw new Error('กรุณาตั้งค่า API Key ก่อนใช้งาน');
+        throw new Error('กรุณาตั้งค่า API Key ก่อนใช้งาน — กดปุ่ม "ตั้งค่า AI" ด้านบนขวา');
       }
 
       setLoading(true);
