@@ -94,7 +94,7 @@ const ConceptModule = ({
         <b>3.3 จิตพิสัย</b><ul>${renderList(unit.objectives?.affective)}</ul>
         <b>3.4 การประยุกต์ใช้ฯ</b><ul>${renderList(unit.objectives?.application)}</ul>
       </div>
-      <h4>4. สาระการเรียนรู้</h4><p style="margin-left:20px;">${unit.concept || '-'}</p><hr/></div>
+      <h4>4. สาระการเรียนรู้</h4><ul style="margin-left:20px;">${(unit.concept || '-').split(/\n|<br\s*\/?>/).filter(l => l.trim()).map(l => `<li>${l.replace(/^\d+\.\s*/, '').replace(/^[-•]\s*/, '').trim()}</li>`).join('')}</ul><hr/></div>
     `).join('');
     createWordDoc(`Full_Syllabus_${formData.courseCode}`, `<h2 style="text-align:center;">เอกสารสรุปรายวิชา ${formData.courseCode} ${formData.courseName}</h2><hr/>${content}`);
   };
@@ -117,7 +117,7 @@ const ConceptModule = ({
         <p><b>3.3 จิตพิสัย:</b></p><ul>${renderList(unit.objectives?.affective)}</ul>
         <p><b>3.4 การประยุกต์ใช้ฯ:</b></p><ul>${renderList(unit.objectives?.application)}</ul>
       </div>
-      <p><b>4. สาระการเรียนรู้</b><br/>${unit.concept || '-'}</p></div>
+      <p><b>4. สาระการเรียนรู้</b></p><ul>${(unit.concept || '-').split(/\n|<br\s*\/?>/).filter(l => l.trim()).map(l => `<li>${l.replace(/^\d+\.\s*/, '').replace(/^[-•]\s*/, '').trim()}</li>`).join('')}</ul></div>
     `).join('');
     printToPdf(`เอกสารสรุปรายวิชา: ${formData.courseName}`, content);
   };
@@ -176,7 +176,18 @@ const ConceptModule = ({
               <thead className="bg-gray-50"><tr><th className="px-4 py-3 text-left text-sm font-bold text-gray-700 w-1/4">ชื่อหน่วย</th><th className="px-4 py-3 text-left text-sm font-bold text-gray-700">สาระสำคัญ (Key Concept)</th></tr></thead>
               <tbody className="bg-white divide-y divide-gray-200">
                 {conceptResults.map((item, idx) => (
-                  <tr key={idx}><td className="px-4 py-4 text-sm font-medium text-gray-900 align-top">{item.unitName}</td><td className="px-4 py-4 text-sm text-gray-600 align-top leading-relaxed">{item.concept}</td></tr>
+                  <tr key={idx}>
+                    <td className="px-4 py-4 text-sm font-medium text-gray-900 align-top">{item.unitName}</td>
+                    <td className="px-4 py-4 text-sm text-gray-600 align-top leading-relaxed">
+                      {typeof item.concept === 'string' ? (
+                        <ul className="list-disc pl-4 space-y-1">
+                          {item.concept.split(/\n|<br\s*\/?>/).filter(l => l.trim()).map((line, i) => (
+                            <li key={i}>{line.replace(/^\d+\.\s*/, '').replace(/^[-•]\s*/, '').trim()}</li>
+                          ))}
+                        </ul>
+                      ) : item.concept}
+                    </td>
+                  </tr>
                 ))}
               </tbody>
             </table>
