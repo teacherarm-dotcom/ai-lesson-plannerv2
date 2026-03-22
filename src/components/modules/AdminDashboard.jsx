@@ -190,21 +190,51 @@ const AdminDashboard = () => {
     return sortAsc ? <ChevronUp size={12} /> : <ChevronDown size={12} />;
   };
 
-  const renderBarChart = (counts, color) => {
-    const max = Math.max(...Object.values(counts), 1);
+  const PIE_COLORS = ['#3b82f6', '#10b981', '#8b5cf6', '#f59e0b', '#ef4444', '#06b6d4', '#ec4899', '#84cc16', '#f97316', '#6366f1'];
+
+  const renderPieChart = (counts) => {
     const sorted = Object.entries(counts).sort((a, b) => b[1] - a[1]);
+    const total = sorted.reduce((s, [, v]) => s + v, 0);
+    if (total === 0) return <p className="text-xs text-gray-400 text-center py-4">ไม่มีข้อมูล</p>;
+
+    // Build SVG pie slices
+    let cumulative = 0;
+    const slices = sorted.map(([label, count], i) => {
+      const pct = count / total;
+      const startAngle = cumulative * 360;
+      cumulative += pct;
+      const endAngle = cumulative * 360;
+      const largeArc = pct > 0.5 ? 1 : 0;
+      const startRad = ((startAngle - 90) * Math.PI) / 180;
+      const endRad = ((endAngle - 90) * Math.PI) / 180;
+      const x1 = 50 + 40 * Math.cos(startRad);
+      const y1 = 50 + 40 * Math.sin(startRad);
+      const x2 = 50 + 40 * Math.cos(endRad);
+      const y2 = 50 + 40 * Math.sin(endRad);
+      const color = PIE_COLORS[i % PIE_COLORS.length];
+      const d = pct >= 0.999
+        ? `M 50 10 A 40 40 0 1 1 49.999 10 Z`
+        : `M 50 50 L ${x1} ${y1} A 40 40 0 ${largeArc} 1 ${x2} ${y2} Z`;
+      return { label, count, pct, color, d };
+    });
+
     return (
-      <div className="space-y-2">
-        {sorted.map(([label, count]) => (
-          <div key={label} className="flex items-center gap-2">
-            <span className="text-xs text-gray-600 w-40 truncate text-right">{label}</span>
-            <div className="flex-1 bg-gray-100 rounded-full h-5 overflow-hidden">
-              <div className={`h-full ${color} rounded-full flex items-center justify-end pr-2 text-[10px] font-bold text-white transition-all duration-500`} style={{ width: `${Math.max((count / max) * 100, 8)}%` }}>
-                {count}
-              </div>
+      <div className="flex items-center gap-4">
+        <svg viewBox="0 0 100 100" className="w-28 h-28 flex-shrink-0">
+          {slices.map((s, i) => (
+            <path key={i} d={s.d} fill={s.color} stroke="white" strokeWidth="1" />
+          ))}
+        </svg>
+        <div className="flex-1 space-y-1 max-h-32 overflow-y-auto">
+          {slices.map((s, i) => (
+            <div key={i} className="flex items-center gap-2 text-xs">
+              <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: s.color }} />
+              <span className="text-gray-700 truncate flex-1">{s.label}</span>
+              <span className="font-bold text-gray-800">{s.count}</span>
+              <span className="text-gray-400">({Math.round(s.pct * 100)}%)</span>
             </div>
-          </div>
-        ))}
+          ))}
+        </div>
       </div>
     );
   };
@@ -342,19 +372,19 @@ const AdminDashboard = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="bg-gray-50 rounded-xl p-4 border border-gray-200">
               <h3 className="text-sm font-bold text-gray-700 mb-3 flex items-center gap-1.5"><MapPin size={14} className="text-blue-500" /> จำแนกตามภาค</h3>
-              {renderBarChart(regionCounts, 'bg-blue-500')}
+              {renderPieChart(regionCounts, 'bg-blue-500')}
             </div>
             <div className="bg-gray-50 rounded-xl p-4 border border-gray-200">
               <h3 className="text-sm font-bold text-gray-700 mb-3 flex items-center gap-1.5"><Building2 size={14} className="text-green-500" /> จำแนกตามสังกัด</h3>
-              {renderBarChart(affiliationCounts, 'bg-green-500')}
+              {renderPieChart(affiliationCounts, 'bg-green-500')}
             </div>
             <div className="bg-gray-50 rounded-xl p-4 border border-gray-200">
               <h3 className="text-sm font-bold text-gray-700 mb-3 flex items-center gap-1.5"><GraduationCap size={14} className="text-purple-500" /> จำแนกตามตำแหน่ง</h3>
-              {renderBarChart(positionCounts, 'bg-purple-500')}
+              {renderPieChart(positionCounts, 'bg-purple-500')}
             </div>
             <div className="bg-gray-50 rounded-xl p-4 border border-gray-200">
               <h3 className="text-sm font-bold text-gray-700 mb-3 flex items-center gap-1.5"><MapPin size={14} className="text-orange-500" /> จำแนกตามจังหวัด (Top 10)</h3>
-              {renderBarChart(Object.fromEntries(Object.entries(provinceCounts).sort((a, b) => b[1] - a[1]).slice(0, 10)), 'bg-orange-500')}
+              {renderPieChart(Object.fromEntries(Object.entries(provinceCounts).sort((a, b) => b[1] - a[1]).slice(0, 10)), 'bg-orange-500')}
             </div>
           </div>
 

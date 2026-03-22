@@ -390,7 +390,7 @@ const AnalysisModule = ({
               regenerateLabel="สร้างใหม่"
             />
           </div>
-          <EditableUnitTable markdown={unitDivisionPlan} onSave={(newMd) => setUnitDivisionPlan(newMd)} courseCode={formData.courseCode} />
+          <EditableUnitTable markdown={unitDivisionPlan} onSave={(newMd) => setUnitDivisionPlan(newMd)} courseCode={formData.courseCode} ratio={formData.ratio} />
           <div className="mt-4 flex items-start gap-2 text-xs text-orange-700 bg-orange-50 p-3 rounded-lg border border-orange-200">
             <AlertTriangle size={16} className="flex-shrink-0 mt-0.5" />
             <p><b>คำแนะนำ:</b> กดปุ่ม "แก้ไขตาราง" เพื่อแก้ไขชื่อหน่วย เพิ่ม/ลบหน่วย หรือปรับชั่วโมงได้ตามต้องการ<br />ข้อมูลเป็นเพียงตัวอย่างที่ AI สร้างขึ้น คุณครูสามารถปรับเปลี่ยนได้ตามความเหมาะสม</p>

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Edit3, Save, X, Plus, Trash2 } from 'lucide-react';
 import { parseUnitTable } from '../../utils/markdownTable';
 
-const EditableUnitTable = ({ markdown, onSave, courseCode }) => {
+const EditableUnitTable = ({ markdown, onSave, courseCode, ratio }) => {
   const [units, setUnits] = useState([]);
   const [editing, setEditing] = useState(false);
   const [showAssessment, setShowAssessment] = useState(true);
@@ -18,18 +18,14 @@ const EditableUnitTable = ({ markdown, onSave, courseCode }) => {
 
   if (units.length === 0) return null;
 
-  // Calculate theory/practice per week from ratio (from first unit or courseCode pattern)
-  const getWeeklyHours = () => {
-    // Try to detect from units: find most common theory/practice values
-    const theories = units.map(u => parseInt(u.theory) || 0).filter(v => v > 0);
-    const practices = units.map(u => parseInt(u.practice) || 0).filter(v => v > 0);
-    // Use minimum non-zero values as likely per-week hours
-    const minT = theories.length > 0 ? Math.min(...theories) : 2;
-    const minP = practices.length > 0 ? Math.min(...practices) : 2;
-    return { weeklyTheory: minT, weeklyPractice: minP };
+  // Parse theory/practice per week from ratio (e.g. "2-2-3" → theory=2, practice=2)
+  const parseRatio = () => {
+    const match = ratio ? ratio.match(/(\d+)\s*[-–]\s*(\d+)/) : null;
+    if (match) return { weeklyTheory: parseInt(match[1]), weeklyPractice: parseInt(match[2]) };
+    return { weeklyTheory: 2, weeklyPractice: 2 }; // fallback
   };
 
-  const { weeklyTheory, weeklyPractice } = getWeeklyHours();
+  const { weeklyTheory, weeklyPractice } = parseRatio();
 
   // Assessment = 1 week
   const assessTheory = showAssessment ? weeklyTheory : 0;
