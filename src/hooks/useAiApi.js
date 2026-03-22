@@ -1,12 +1,26 @@
 import { useState, useCallback, useMemo } from 'react';
-import { createProvider, DEFAULT_PROVIDER } from '../providers/index';
+import { createProvider, DEFAULT_PROVIDER, getAvailableProviders } from '../providers/index';
 import { cleanAndParseJSON } from '../utils/jsonParser';
 
 const STORAGE_PREFIX = 'ai_apikey_';
 const PROVIDER_KEY = 'ai_provider';
 
-// --- localStorage helpers ---
-export const getStoredProvider = () => localStorage.getItem(PROVIDER_KEY) || DEFAULT_PROVIDER;
+// Valid provider IDs (used to clean up stale localStorage)
+const VALID_IDS = new Set(getAvailableProviders().map((p) => p.id));
+
+// --- localStorage helpers with auto-cleanup ---
+export const getStoredProvider = () => {
+  const stored = localStorage.getItem(PROVIDER_KEY);
+  // If stored provider is no longer valid (e.g. "openrouter"), reset to default
+  if (stored && !VALID_IDS.has(stored)) {
+    console.log(`[useAiApi] Stored provider "${stored}" no longer valid, resetting to "${DEFAULT_PROVIDER}"`);
+    localStorage.removeItem(PROVIDER_KEY);
+    // Clean up old keys too
+    localStorage.removeItem(STORAGE_PREFIX + stored);
+    return DEFAULT_PROVIDER;
+  }
+  return stored || DEFAULT_PROVIDER;
+};
 export const setStoredProvider = (id) => localStorage.setItem(PROVIDER_KEY, id);
 export const getStoredApiKey = (providerId) => localStorage.getItem(STORAGE_PREFIX + providerId) || '';
 export const setStoredApiKey = (providerId, key) => localStorage.setItem(STORAGE_PREFIX + providerId, key);
