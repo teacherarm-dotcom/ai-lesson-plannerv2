@@ -33,11 +33,13 @@ export const getWeeklyHours = (ratio) => {
 };
 
 /**
- * Return weeks count based on certificate level.
+ * Return weeks for CONTENT ONLY (excluding assessment).
+ * ปวช. = 17 สัปดาห์เนื้อหา (+ 1 ประเมิน = รวม 18)
+ * ปวส. = 15 สัปดาห์เนื้อหา (ประเมินแยกเป็นสัปดาห์ที่ 16)
  */
 export const getWeeksFromCode = (code) => {
   const c = (code || '').trim();
-  return c.startsWith('3') ? 15 : 18;
+  return c.startsWith('3') ? 15 : 17;
 };
 
 /**

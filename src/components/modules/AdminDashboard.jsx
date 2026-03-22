@@ -87,6 +87,16 @@ const AdminDashboard = () => {
   const uniquePositions = useMemo(() => [...new Set(users.map(u => u.position).filter(Boolean))].sort(), [users]);
   const uniqueAffiliations = useMemo(() => [...new Set(users.map(u => u.affiliation).filter(Boolean))].sort(), [users]);
 
+  // Dedup users by firstName+lastName for all summaries (MUST be before early returns)
+  const dedupUsers = useMemo(() => {
+    const seen = new Map();
+    users.forEach((u) => {
+      const key = `${(u.firstName || '').trim()}|${(u.lastName || '').trim()}`.toLowerCase();
+      if (key !== '|' && !seen.has(key)) seen.set(key, u);
+    });
+    return Array.from(seen.values());
+  }, [users]);
+
   // Login screen
   if (!isLoggedIn) {
     return (
@@ -135,16 +145,6 @@ const AdminDashboard = () => {
       </div>
     );
   }
-
-  // Dedup users by firstName+lastName for all summaries
-  const dedupUsers = useMemo(() => {
-    const seen = new Map();
-    users.forEach((u) => {
-      const key = `${(u.firstName || '').trim()}|${(u.lastName || '').trim()}`.toLowerCase();
-      if (key !== '|' && !seen.has(key)) seen.set(key, u);
-    });
-    return Array.from(seen.values());
-  }, [users]);
 
   // All summary counts use dedupUsers
   const regionCounts = {};
