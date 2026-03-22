@@ -165,6 +165,8 @@ export default function App() {
             onOpenPdfTool={() => setIsPdfToolOpen(true)}
             onOpenApiKeyModal={() => setIsApiKeyModalOpen(true)}
             providerName={providerMeta?.name || ''}
+            providerId={providerId}
+            apiKey={apiKey}
           />
           {renderModule()}
         </main>
