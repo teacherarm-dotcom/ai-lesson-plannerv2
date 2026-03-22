@@ -43,8 +43,14 @@ export const logDownloadToSheet = (userInfo, meta = {}) => {
   try {
     fetch(GOOGLE_SHEET_URL, {
       method: 'POST', mode: 'no-cors',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ...userInfo, ...meta, timestamp: new Date().toISOString() }),
+      headers: { 'Content-Type': 'text/plain' },
+      body: JSON.stringify({
+        type: 'user_download',
+        ...userInfo,
+        courseCode: meta.courseCode || '',
+        courseName: meta.courseName || '',
+        module: meta.module || '',
+      }),
     }).catch(() => {});
   } catch { /* silent */ }
 };
