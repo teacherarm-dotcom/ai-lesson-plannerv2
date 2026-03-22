@@ -13,6 +13,7 @@ import AnalysisModule from './components/modules/AnalysisModule';
 import LearningOutcomesModule from './components/modules/LearningOutcomesModule';
 import CompetencyModule from './components/modules/CompetencyModule';
 import ObjectivesModule from './components/modules/ObjectivesModule';
+import AdminDashboard from './components/modules/AdminDashboard';
 import ConceptModule from './components/modules/ConceptModule';
 
 import { getStoredProvider, setStoredProvider, getStoredApiKey, setStoredApiKey } from './hooks/useAiApi';
@@ -121,6 +122,8 @@ export default function App() {
             onError={setError}
           />
         );
+      case 'admin':
+        return <AdminDashboard />;
       default:
         return null;
     }

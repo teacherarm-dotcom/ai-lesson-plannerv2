@@ -49,7 +49,7 @@ const Sidebar = ({ activeMenu, setActiveMenu, onMobileClose }) => {
 
       {/* Menu */}
       <div className="space-y-2 flex-1">
-        {MENU_ITEMS.map((item) => (
+        {MENU_ITEMS.filter((item) => !item.isAdmin).map((item) => (
           <button
             key={item.id}
             onClick={() => handleClick(item.id)}
@@ -66,6 +66,26 @@ const Sidebar = ({ activeMenu, setActiveMenu, onMobileClose }) => {
               <span className="text-sm text-left">{item.label}</span>
             </div>
             {activeMenu === item.id && <ChevronRight size={16} className="text-blue-500" />}
+          </button>
+        ))}
+        {/* Admin menu */}
+        {MENU_ITEMS.filter((item) => item.isAdmin).map((item) => (
+          <button
+            key={item.id}
+            onClick={() => handleClick(item.id)}
+            className={`w-full flex items-center justify-between px-4 py-2.5 rounded-xl transition-all duration-200 group mt-2 pt-2 border-t border-gray-100 ${
+              activeMenu === item.id
+                ? 'bg-gray-100 text-gray-800 shadow-sm border-gray-200 font-semibold'
+                : 'text-gray-400 hover:bg-gray-50 hover:text-gray-600'
+            }`}
+          >
+            <div className="flex items-center gap-3">
+              <div className={activeMenu === item.id ? 'text-gray-600' : 'text-gray-300 group-hover:text-gray-500'}>
+                {item.icon}
+              </div>
+              <span className="text-xs text-left">{item.label}</span>
+            </div>
+            {activeMenu === item.id && <ChevronRight size={14} className="text-gray-400" />}
           </button>
         ))}
       </div>
