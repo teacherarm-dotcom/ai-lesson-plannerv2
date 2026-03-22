@@ -2,9 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { Edit3, Save, X, Plus, Trash2 } from 'lucide-react';
 import { parseUnitTable } from '../../utils/markdownTable';
 
-const EditableUnitTable = ({ markdown, onSave }) => {
+const EditableUnitTable = ({ markdown, onSave, courseCode }) => {
   const [units, setUnits] = useState([]);
   const [editing, setEditing] = useState(false);
+  const [assessTheory, setAssessTheory] = useState('');
+  const [assessPractice, setAssessPractice] = useState('');
 
   useEffect(() => {
     if (markdown) {
@@ -13,6 +15,10 @@ const EditableUnitTable = ({ markdown, onSave }) => {
   }, [markdown]);
 
   if (units.length === 0) return null;
+
+  // Course level
+  const isAdvanced = courseCode && courseCode.trim().startsWith('3');
+  const totalWeeks = isAdvanced ? 15 : 18;
 
   const update = (idx, key, value) => {
     setUnits((prev) => prev.map((u, i) => (i === idx ? { ...u, [key]: value } : u)));
@@ -39,7 +45,6 @@ const EditableUnitTable = ({ markdown, onSave }) => {
 
   const handleSave = () => {
     setEditing(false);
-    // Rebuild markdown from units
     const header = '| หน่วยที่ | ชื่อหน่วยการเรียนรู้ | หัวข้อเรื่อง (Topics) | ทฤษฎี (ชม.) | ปฏิบัติ (ชม.) | รวม (ชม.) |';
     const sep = '| --- | --- | --- | --- | --- | --- |';
     const rows = units.map((u) =>
@@ -49,10 +54,20 @@ const EditableUnitTable = ({ markdown, onSave }) => {
     if (onSave) onSave(newMarkdown);
   };
 
-  // Totals
-  const totalTheory = units.reduce((s, u) => s + (parseInt(u.theory) || 0), 0);
-  const totalPractice = units.reduce((s, u) => s + (parseInt(u.practice) || 0), 0);
-  const totalAll = units.reduce((s, u) => s + (parseInt(u.total) || 0), 0);
+  // Totals (units only)
+  const unitTheory = units.reduce((s, u) => s + (parseInt(u.theory) || 0), 0);
+  const unitPractice = units.reduce((s, u) => s + (parseInt(u.practice) || 0), 0);
+  const unitTotal = units.reduce((s, u) => s + (parseInt(u.total) || 0), 0);
+
+  // Assessment
+  const at = parseInt(assessTheory) || 0;
+  const ap = parseInt(assessPractice) || 0;
+  const assessTotal = at + ap;
+
+  // Grand total
+  const grandTheory = unitTheory + at;
+  const grandPractice = unitPractice + ap;
+  const grandTotal = unitTotal + assessTotal;
 
   return (
     <div>
@@ -99,9 +114,7 @@ const EditableUnitTable = ({ markdown, onSave }) => {
             {units.map((unit, idx) => (
               <tr key={idx} className={idx % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
                 <td className="px-3 py-2 text-sm text-gray-700 align-top">
-                  {editing ? (
-                    <span className="text-gray-500 text-xs">{idx + 1}</span>
-                  ) : unit.no}
+                  {editing ? <span className="text-gray-500 text-xs">{idx + 1}</span> : unit.no}
                 </td>
                 <td className="px-3 py-2 text-sm align-top">
                   {editing ? (
@@ -131,9 +144,7 @@ const EditableUnitTable = ({ markdown, onSave }) => {
                       className="w-16 p-1.5 border border-gray-300 rounded text-sm text-center focus:ring-2 focus:ring-blue-500" />
                   ) : unit.practice}
                 </td>
-                <td className="px-3 py-2 text-sm text-center align-top font-bold">
-                  {unit.total}
-                </td>
+                <td className="px-3 py-2 text-sm text-center align-top font-bold">{unit.total}</td>
                 {editing && (
                   <td className="px-3 py-2 align-top">
                     <button onClick={() => removeUnit(idx)} disabled={units.length <= 1}
@@ -144,13 +155,44 @@ const EditableUnitTable = ({ markdown, onSave }) => {
                 )}
               </tr>
             ))}
+
+            {/* Assessment row */}
+            <tr className="bg-amber-50 border-t-2 border-amber-300">
+              <td colSpan={editing ? 3 : 2} className="px-3 py-2.5 text-sm font-bold text-amber-800 text-center">
+                ประเมินผลลัพธ์การเรียนรู้
+              </td>
+              <td className="px-2 py-2 text-center">
+                <input
+                  type="number" min="0" value={assessTheory}
+                  onChange={(e) => setAssessTheory(e.target.value)}
+                  placeholder="0"
+                  className="w-16 text-center border border-amber-300 rounded-lg py-1 px-1 text-sm focus:ring-2 focus:ring-amber-400 bg-white"
+                />
+              </td>
+              <td className="px-2 py-2 text-center">
+                <input
+                  type="number" min="0" value={assessPractice}
+                  onChange={(e) => setAssessPractice(e.target.value)}
+                  placeholder="0"
+                  className="w-16 text-center border border-amber-300 rounded-lg py-1 px-1 text-sm focus:ring-2 focus:ring-amber-400 bg-white"
+                />
+              </td>
+              <td className="px-3 py-2.5 text-sm font-bold text-amber-800 text-center">
+                {assessTotal > 0 ? assessTotal : '-'}
+              </td>
+              {editing && <td></td>}
+            </tr>
           </tbody>
-          <tfoot className="bg-gray-100">
+
+          {/* Grand total footer */}
+          <tfoot className="bg-blue-50 border-t-2 border-blue-300">
             <tr>
-              <td colSpan={editing ? 3 : 2} className="px-3 py-2 text-sm font-bold text-right text-gray-700">รวมทั้งสิ้น</td>
-              <td className="px-3 py-2 text-sm font-bold text-center text-gray-700">{totalTheory}</td>
-              <td className="px-3 py-2 text-sm font-bold text-center text-gray-700">{totalPractice}</td>
-              <td className="px-3 py-2 text-sm font-bold text-center text-gray-700">{totalAll}</td>
+              <td colSpan={editing ? 3 : 2} className="px-3 py-2.5 text-sm font-bold text-right text-blue-900">
+                รวมทั้งสิ้น ({isAdvanced ? 'ปวส.' : 'ปวช.'} {totalWeeks} สัปดาห์)
+              </td>
+              <td className="px-3 py-2.5 text-sm font-bold text-center text-blue-900">{grandTheory}</td>
+              <td className="px-3 py-2.5 text-sm font-bold text-center text-blue-900">{grandPractice}</td>
+              <td className="px-3 py-2.5 text-base font-bold text-center text-blue-900">{grandTotal}</td>
               {editing && <td></td>}
             </tr>
           </tfoot>

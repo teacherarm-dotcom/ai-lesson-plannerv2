@@ -6,6 +6,6 @@ export const MENU_ITEMS = [
   { id: 'learning_outcomes', label: 'ผลลัพธ์การเรียนรู้ประจำหน่วย', icon: <Target size={20} /> },
   { id: 'competencies', label: 'สมรรถนะประจำหน่วย', icon: <Zap size={20} /> },
   { id: 'objectives', label: 'จุดประสงค์เชิงพฤติกรรม', icon: <ListChecks size={20} /> },
-  { id: 'concept', label: 'สาระสำคัญ', icon: <Lightbulb size={20} /> },
+  { id: 'concept', label: 'เนื้อหาสาระ', icon: <Lightbulb size={20} /> },
   { id: 'admin', label: 'Admin Dashboard', icon: <LayoutDashboard size={20} />, isAdmin: true },
 ];

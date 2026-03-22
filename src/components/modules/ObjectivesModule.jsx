@@ -191,7 +191,7 @@ const ObjectivesModule = ({
             <div className="mt-8 text-center bg-gray-50 p-6 rounded-xl border border-gray-200">
               <h4 className="text-gray-700 font-bold mb-3">ขั้นตอนต่อไป</h4>
               <button onClick={() => onNavigate('concept')} className="bg-amber-600 text-white px-8 py-3 rounded-xl font-bold hover:bg-amber-700 shadow-lg flex items-center gap-2 mx-auto animate-bounce">
-                ไปขั้นตอนต่อไป: สาระสำคัญ (Module 5) <ArrowRight size={20} />
+                ไปขั้นตอนต่อไป: เนื้อหาสาระ (Module 5) <ArrowRight size={20} />
               </button>
             </div>
           </div>

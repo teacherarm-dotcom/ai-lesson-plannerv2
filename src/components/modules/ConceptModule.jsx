@@ -44,26 +44,26 @@ const ConceptModule = ({
           parts.push(...buildFileParts(fileHooks[i].file, `${i + 1}. ${label}`));
         });
       }
-      const data = await callApi(parts, { json: true, statusText: 'กำลังวิเคราะห์และสรุปสาระสำคัญประจำหน่วย...' });
+      const data = await callApi(parts, { json: true, statusText: 'กำลังวิเคราะห์และสรุปเนื้อหาสาระประจำหน่วย...' });
       if (data?.units) setConceptResults(data.units);
       else throw new Error('Invalid');
     } catch (err) {
       console.error('Concept Error:', err);
-      onError(`เกิดข้อผิดพลาด: ${err.message || 'ไม่สามารถสร้างสาระสำคัญได้'}`);
+      onError(`เกิดข้อผิดพลาด: ${err.message || 'ไม่สามารถสร้างเนื้อหาสาระได้'}`);
     }
   };
 
   const _doExportWord = () => {
     if (!conceptResults) return;
     const rows = conceptResults.map((item, idx) => `<tr><td style="text-align:center;vertical-align:top;">${idx + 1}</td><td style="vertical-align:top;">${item.unitName}</td><td style="vertical-align:top;">${item.concept}</td></tr>`).join('');
-    createWordDoc(`สาระสำคัญ_${formData.courseCode}`, `<table><thead><tr><th width="10%">ที่</th><th width="30%">หน่วยการเรียนรู้</th><th>สาระสำคัญ (Key Concept)</th></tr></thead><tbody>${rows}</tbody></table>`);
+    createWordDoc(`เนื้อหาสาระ_${formData.courseCode}`, `<table><thead><tr><th width="10%">ที่</th><th width="30%">หน่วยการเรียนรู้</th><th>เนื้อหาสาระ (Key Concept)</th></tr></thead><tbody>${rows}</tbody></table>`);
   };
   const exportWord = () => dl(_doExportWord);
 
   const _doExportPdf = () => {
     if (!conceptResults) return;
     const rows = conceptResults.map((item, idx) => `<tr><td class="text-center">${idx + 1}</td><td>${item.unitName}</td><td>${item.concept}</td></tr>`).join('');
-    printToPdf(`สาระสำคัญ ${formData.courseCode}`, `<table><thead><tr><th width="10%">ที่</th><th width="30%">หน่วยการเรียนรู้</th><th>สาระสำคัญ (Key Concept)</th></tr></thead><tbody>${rows}</tbody></table>`);
+    printToPdf(`เนื้อหาสาระ ${formData.courseCode}`, `<table><thead><tr><th width="10%">ที่</th><th width="30%">หน่วยการเรียนรู้</th><th>เนื้อหาสาระ (Key Concept)</th></tr></thead><tbody>${rows}</tbody></table>`);
   };
   const exportPdf = () => dl(_doExportPdf);
 
@@ -126,8 +126,8 @@ const ConceptModule = ({
   return (
     <div className="bg-white rounded-2xl shadow-xl p-6 md:p-8 min-h-[80vh]">
       <div className="mb-6 border-b border-gray-100 pb-4">
-        <h2 className="text-2xl font-bold text-gray-800 flex items-center gap-2"><Lightbulb className="text-blue-600" /> สาระสำคัญ (Key Concepts)</h2>
-        <p className="text-gray-500 text-sm mt-1">สรุปสาระสำคัญของแต่ละหน่วยจากข้อมูลที่วิเคราะห์มาทั้งหมด</p>
+        <h2 className="text-2xl font-bold text-gray-800 flex items-center gap-2"><Lightbulb className="text-blue-600" /> เนื้อหาสาระ (Key Concepts)</h2>
+        <p className="text-gray-500 text-sm mt-1">สรุปเนื้อหาสาระของแต่ละหน่วยจากข้อมูลที่วิเคราะห์มาทั้งหมด</p>
       </div>
 
       {!conceptResults ? (
@@ -159,7 +159,7 @@ const ConceptModule = ({
               <button onClick={() => setConceptStep((p) => p + 1)} className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-1 shadow-md">ถัดไป <ChevronRight size={18} /></button>
             ) : (
               <button onClick={generate} disabled={loading} className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center gap-2 shadow-md">
-                {loading ? <Loader2 className="animate-spin" /> : <Sparkles />} วิเคราะห์และสร้างสาระสำคัญ
+                {loading ? <Loader2 className="animate-spin" /> : <Sparkles />} วิเคราะห์และสร้างเนื้อหาสาระ
               </button>
             )}
           </div>
@@ -167,13 +167,13 @@ const ConceptModule = ({
       ) : (
         <div>
           <div className="flex items-center justify-between bg-green-50 p-3 rounded-lg border border-green-200 mb-4">
-            <div className="flex items-center gap-2 text-green-800 text-sm"><Check size={16} /> สร้างสาระสำคัญสำเร็จ!</div>
+            <div className="flex items-center gap-2 text-green-800 text-sm"><Check size={16} /> สร้างเนื้อหาสาระสำเร็จ!</div>
             <ExportButtons onRegenerate={generate} onExportWord={exportWord} onExportPdf={exportPdf} />
           </div>
 
           <div className="overflow-x-auto border border-gray-200 rounded-xl shadow-sm">
             <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50"><tr><th className="px-4 py-3 text-left text-sm font-bold text-gray-700 w-1/4">ชื่อหน่วย</th><th className="px-4 py-3 text-left text-sm font-bold text-gray-700">สาระสำคัญ (Key Concept)</th></tr></thead>
+              <thead className="bg-gray-50"><tr><th className="px-4 py-3 text-left text-sm font-bold text-gray-700 w-1/4">ชื่อหน่วย</th><th className="px-4 py-3 text-left text-sm font-bold text-gray-700">เนื้อหาสาระ (Key Concept)</th></tr></thead>
               <tbody className="bg-white divide-y divide-gray-200">
                 {conceptResults.map((item, idx) => (
                   <tr key={idx}>
@@ -216,7 +216,7 @@ const ConceptModule = ({
                 <li>ผลลัพธ์การเรียนรู้ (Learning Outcomes)</li>
                 <li>สมรรถนะประจำหน่วย (Competencies)</li>
                 <li>จุดประสงค์เชิงพฤติกรรม (Behavioral Objectives)</li>
-                <li>สาระสำคัญ (Key Concepts)</li>
+                <li>เนื้อหาสาระ (Key Concepts)</li>
               </ul>
             </div>
           </div>
