@@ -68,6 +68,25 @@ const AdminDashboard = () => {
     }
   };
 
+  // ALL hooks must be called before any early return
+  const users = data?.users || [];
+  const stats = data?.stats || [];
+  const summary = data?.summary || {};
+
+  const uniqueUserCount = useMemo(() => {
+    const seen = new Set();
+    users.forEach((u) => {
+      const key = `${(u.firstName || '').trim()}|${(u.lastName || '').trim()}`.toLowerCase();
+      if (key !== '|') seen.add(key);
+    });
+    return seen.size;
+  }, [users]);
+
+  const uniqueRegions = useMemo(() => [...new Set(users.map(u => u.region).filter(Boolean))].sort(), [users]);
+  const uniqueProvinces = useMemo(() => [...new Set(users.map(u => u.province).filter(Boolean))].sort(), [users]);
+  const uniquePositions = useMemo(() => [...new Set(users.map(u => u.position).filter(Boolean))].sort(), [users]);
+  const uniqueAffiliations = useMemo(() => [...new Set(users.map(u => u.affiliation).filter(Boolean))].sort(), [users]);
+
   // Login screen
   if (!isLoggedIn) {
     return (
@@ -116,26 +135,6 @@ const AdminDashboard = () => {
       </div>
     );
   }
-
-  const summary = data?.summary || {};
-  const users = data?.users || [];
-  const stats = data?.stats || [];
-
-  // Compute unique users (dedup by firstName+lastName)
-  const uniqueUserCount = useMemo(() => {
-    const seen = new Set();
-    users.forEach((u) => {
-      const key = `${(u.firstName || '').trim()}|${(u.lastName || '').trim()}`.toLowerCase();
-      seen.add(key);
-    });
-    return seen.size;
-  }, [users]);
-
-  // Unique filter options from data
-  const uniqueRegions = useMemo(() => [...new Set(users.map(u => u.region).filter(Boolean))].sort(), [users]);
-  const uniqueProvinces = useMemo(() => [...new Set(users.map(u => u.province).filter(Boolean))].sort(), [users]);
-  const uniquePositions = useMemo(() => [...new Set(users.map(u => u.position).filter(Boolean))].sort(), [users]);
-  const uniqueAffiliations = useMemo(() => [...new Set(users.map(u => u.affiliation).filter(Boolean))].sort(), [users]);
 
   // Region summary
   const regionCounts = {};
