@@ -36,10 +36,9 @@ const EditableUnitTable = ({ markdown, onSave, courseCode }) => {
   const assessPractice = showAssessment ? weeklyPractice : 0;
   const assessTotal = assessTheory + assessPractice;
 
-  // Weeks: ปวช.=18, ปวส.=16 (with assessment) or 15 (without)
-  const totalWeeks = isAdvanced
-    ? (showAssessment ? 16 : 15)
-    : 18;
+  // ปวช. = 18 สัปดาห์ (รวมประเมินแล้ว)
+  // ปวส. = 15 สัปดาห์ (ไม่รวมประเมิน, ประเมินเป็นสัปดาห์ที่ 16 แยกต่างหาก)
+  const totalWeeks = isAdvanced ? 15 : 18;
 
   const update = (idx, key, value) => {
     setUnits((prev) => prev.map((u, i) => (i === idx ? { ...u, [key]: value } : u)));
@@ -81,9 +80,11 @@ const EditableUnitTable = ({ markdown, onSave, courseCode }) => {
   const unitTotal = units.reduce((s, u) => s + (parseInt(u.total) || 0), 0);
 
   // Grand total
-  const grandTheory = unitTheory + assessTheory;
-  const grandPractice = unitPractice + assessPractice;
-  const grandTotal = unitTotal + assessTotal;
+  // ปวช.: รวมประเมินใน grand total (18 สัปดาห์รวมประเมิน)
+  // ปวส.: ไม่รวมประเมินใน grand total (15 สัปดาห์ + ประเมินแยก)
+  const grandTheory = isAdvanced ? unitTheory : unitTheory + assessTheory;
+  const grandPractice = isAdvanced ? unitPractice : unitPractice + assessPractice;
+  const grandTotal = isAdvanced ? unitTotal : unitTotal + assessTotal;
 
   return (
     <div>
@@ -213,7 +214,7 @@ const EditableUnitTable = ({ markdown, onSave, courseCode }) => {
           <tfoot className="bg-blue-50 border-t-2 border-blue-300">
             <tr>
               <td colSpan={editing ? 3 : 2} className="px-3 py-2.5 text-sm font-bold text-right text-blue-900">
-                รวมทั้งสิ้น ({isAdvanced ? 'ปวส.' : 'ปวช.'} {totalWeeks} สัปดาห์)
+                รวมทั้งสิ้น ({isAdvanced ? `ปวส. ${totalWeeks} สัปดาห์${showAssessment ? ' + ประเมิน 1 สัปดาห์' : ''}` : `ปวช. ${totalWeeks} สัปดาห์`})
               </td>
               <td className="px-3 py-2.5 text-sm font-bold text-center text-blue-900">{grandTheory}</td>
               <td className="px-3 py-2.5 text-sm font-bold text-center text-blue-900">{grandPractice}</td>

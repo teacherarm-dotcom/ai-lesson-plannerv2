@@ -136,24 +136,31 @@ const AdminDashboard = () => {
     );
   }
 
-  // Region summary
+  // Dedup users by firstName+lastName for all summaries
+  const dedupUsers = useMemo(() => {
+    const seen = new Map();
+    users.forEach((u) => {
+      const key = `${(u.firstName || '').trim()}|${(u.lastName || '').trim()}`.toLowerCase();
+      if (key !== '|' && !seen.has(key)) seen.set(key, u);
+    });
+    return Array.from(seen.values());
+  }, [users]);
+
+  // All summary counts use dedupUsers
   const regionCounts = {};
-  users.forEach((u) => { const r = u.region || 'ไม่ระบุ'; regionCounts[r] = (regionCounts[r] || 0) + 1; });
+  dedupUsers.forEach((u) => { const r = u.region || 'ไม่ระบุ'; regionCounts[r] = (regionCounts[r] || 0) + 1; });
 
-  // Affiliation summary
   const affiliationCounts = {};
-  users.forEach((u) => { const a = u.affiliation || 'ไม่ระบุ'; affiliationCounts[a] = (affiliationCounts[a] || 0) + 1; });
+  dedupUsers.forEach((u) => { const a = u.affiliation || 'ไม่ระบุ'; affiliationCounts[a] = (affiliationCounts[a] || 0) + 1; });
 
-  // Position summary
   const positionCounts = {};
-  users.forEach((u) => { const p = u.position || 'ไม่ระบุ'; positionCounts[p] = (positionCounts[p] || 0) + 1; });
+  dedupUsers.forEach((u) => { const p = u.position || 'ไม่ระบุ'; positionCounts[p] = (positionCounts[p] || 0) + 1; });
 
-  // Province summary
   const provinceCounts = {};
-  users.forEach((u) => { const p = u.province || 'ไม่ระบุ'; provinceCounts[p] = (provinceCounts[p] || 0) + 1; });
+  dedupUsers.forEach((u) => { const p = u.province || 'ไม่ระบุ'; provinceCounts[p] = (provinceCounts[p] || 0) + 1; });
 
   // Filter users by search + dropdown filters
-  const filteredUsers = users.filter((u) => {
+  const filteredUsers = dedupUsers.filter((u) => {
     // Dropdown filters (AND logic)
     if (filterRegion && u.region !== filterRegion) return false;
     if (filterProvince && u.province !== filterProvince) return false;
