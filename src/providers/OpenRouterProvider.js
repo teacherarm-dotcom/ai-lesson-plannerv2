@@ -2,16 +2,21 @@ import { BaseProvider } from './BaseProvider';
 
 const OPENROUTER_API_KEY = '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';
 
-// Models ordered by preference — system auto-switches on 429/404
+// FREE models only — ordered by capability for Thai education content
 const MODELS = [
-  'google/gemini-2.5-flash',
-  'google/gemini-2.0-flash-001',
   'google/gemini-2.0-flash-exp:free',
-  'google/gemini-flash-1.5',
   'meta-llama/llama-4-maverick:free',
   'deepseek/deepseek-chat-v3-0324:free',
   'qwen/qwen3-235b-a22b:free',
+  'microsoft/mai-ds-r1:free',
+  'google/gemma-3-27b-it:free',
 ];
+
+// Global rate limiter — shared across all instances
+let lastRequestTime = 0;
+const MIN_REQUEST_GAP_MS = 3000; // 3 seconds between requests
+
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 export class OpenRouterProvider extends BaseProvider {
   constructor() {
@@ -27,6 +32,14 @@ export class OpenRouterProvider extends BaseProvider {
   static get apiKeyHelpText() { return ''; }
 
   async sendMessage(systemPrompt, contents = [], options = {}) {
+    // Rate limiter — ensure minimum gap between requests
+    const now = Date.now();
+    const timeSinceLastRequest = now - lastRequestTime;
+    if (timeSinceLastRequest < MIN_REQUEST_GAP_MS) {
+      await sleep(MIN_REQUEST_GAP_MS - timeSinceLastRequest);
+    }
+    lastRequestTime = Date.now();
+
     const messages = [];
     if (systemPrompt) messages.push({ role: 'system', content: systemPrompt });
 
@@ -49,12 +62,13 @@ export class OpenRouterProvider extends BaseProvider {
     }
     messages.push({ role: 'user', content: userParts });
 
-    // Try each model — auto-switch on 429/404
+    // Try each model — auto-switch on 429/404/5xx
     let lastError = null;
-    for (const model of MODELS) {
+    for (let i = 0; i < MODELS.length; i++) {
+      const model = MODELS[i];
       try {
         console.log(`[OpenRouter] Trying model: ${model}`);
-        const result = await this._callModel(model, messages, options);
+        const result = await this._callModelWithRetry(model, messages, options);
         this.model = model;
         return result;
       } catch (err) {
@@ -64,35 +78,54 @@ export class OpenRouterProvider extends BaseProvider {
         // Auth error — no point trying other models
         if (status === 401 || status === 403) throw err;
 
-        // 429 or 404 — try next model
-        if (status === 429 || status === 404) {
-          console.log(`[OpenRouter] Model "${model}" ${status === 429 ? 'rate limited' : 'not found'}, trying next...`);
-          continue;
-        }
+        console.log(`[OpenRouter] Model "${model}" failed (${status || err.message}), trying next...`);
 
-        // Other errors — try next model too (more resilient)
-        console.log(`[OpenRouter] Model "${model}" error ${status}, trying next...`);
+        // Wait before trying next model
+        if (i < MODELS.length - 1) {
+          await sleep(2000);
+        }
         continue;
       }
     }
 
-    // All models failed — last resort: wait and retry first model once more
-    console.log('[OpenRouter] All models failed, waiting 15s then retrying first model...');
-    await new Promise((r) => setTimeout(r, 15000));
-    try {
-      return await this._callModel(MODELS[0], messages, options);
-    } catch {
-      // Give up
-    }
-
     throw lastError || new Error('ไม่สามารถเชื่อมต่อ AI ได้ — กรุณาลองใหม่อีกครั้ง');
+  }
+
+  async _callModelWithRetry(model, messages, options, maxRetries = 3) {
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        return await this._callModel(model, messages, options);
+      } catch (err) {
+        const status = err.status || 0;
+
+        // Don't retry auth errors or model not found
+        if (status === 401 || status === 403 || status === 404) throw err;
+
+        // Rate limit — wait and retry
+        if (status === 429 && attempt < maxRetries) {
+          const waitTime = attempt * 10000; // 10s, 20s, 30s
+          console.log(`[OpenRouter] Rate limited on "${model}", waiting ${waitTime/1000}s (attempt ${attempt}/${maxRetries})...`);
+          await sleep(waitTime);
+          lastRequestTime = Date.now();
+          continue;
+        }
+
+        // Server error — short retry
+        if (status >= 500 && attempt < maxRetries) {
+          console.log(`[OpenRouter] Server error ${status}, retrying in 5s...`);
+          await sleep(5000);
+          continue;
+        }
+
+        throw err;
+      }
+    }
   }
 
   async _callModel(model, messages, options) {
     const payload = { model, messages };
     if (options.requireJson) payload.response_format = { type: 'json_object' };
 
-    // Single attempt per model (no per-model retry — we switch models instead)
     const response = await fetch(this.baseUrl, {
       method: 'POST',
       headers: {
