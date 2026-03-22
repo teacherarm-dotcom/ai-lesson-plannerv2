@@ -176,9 +176,20 @@ const EditableUnitTable = ({ markdown, onSave, courseCode, ratio }) => {
                   <div className="flex items-center justify-between">
                     <span>ประเมินผลลัพธ์การเรียนรู้ (1 สัปดาห์)</span>
                     <button
-                      onClick={() => setShowAssessment(false)}
+                      onClick={() => {
+                        // เมื่อลบประเมิน: เพิ่มชั่วโมงประเมินกลับเข้าหน่วยสุดท้าย (เฉพาะ ปวช.)
+                        if (!isAdvanced && units.length > 0) {
+                          setUnits((prev) => prev.map((u, i) => {
+                            if (i !== prev.length - 1) return u;
+                            const t = (parseInt(u.theory) || 0) + weeklyTheory;
+                            const p = (parseInt(u.practice) || 0) + weeklyPractice;
+                            return { ...u, theory: String(t), practice: String(p), total: String(t + p) };
+                          }));
+                        }
+                        setShowAssessment(false);
+                      }}
                       className="text-red-400 hover:text-red-600 p-1 rounded hover:bg-red-50 transition"
-                      title="ลบแถวประเมินผลลัพธ์การเรียนรู้"
+                      title="ลบแถวประเมินผลลัพธ์การเรียนรู้ (ชั่วโมงจะถูกเพิ่มเข้าหน่วยสุดท้าย)"
                     >
                       <Trash2 size={14} />
                     </button>
@@ -196,7 +207,18 @@ const EditableUnitTable = ({ markdown, onSave, courseCode, ratio }) => {
               <tr className="bg-gray-50 border-t border-gray-200">
                 <td colSpan={editing ? 7 : 5} className="px-3 py-2 text-center">
                   <button
-                    onClick={() => setShowAssessment(true)}
+                    onClick={() => {
+                      // เมื่อเพิ่มประเมินกลับ: หักชั่วโมงออกจากหน่วยสุดท้าย (เฉพาะ ปวช.)
+                      if (!isAdvanced && units.length > 0) {
+                        setUnits((prev) => prev.map((u, i) => {
+                          if (i !== prev.length - 1) return u;
+                          const t = Math.max((parseInt(u.theory) || 0) - weeklyTheory, 0);
+                          const p = Math.max((parseInt(u.practice) || 0) - weeklyPractice, 0);
+                          return { ...u, theory: String(t), practice: String(p), total: String(t + p) };
+                        }));
+                      }
+                      setShowAssessment(true);
+                    }}
                     className="text-xs text-amber-600 hover:text-amber-800 font-medium flex items-center gap-1 mx-auto"
                   >
                     <Plus size={13} /> เพิ่มแถวประเมินผลลัพธ์การเรียนรู้

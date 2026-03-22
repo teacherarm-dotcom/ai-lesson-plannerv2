@@ -180,6 +180,85 @@ const AnalysisModule = ({
     }
   };
 
+  // --- Export หลักสูตรรายวิชา (Curriculum DOCX) ---
+  const _doExportCurriculumWord = () => {
+    const fd = formData;
+    const isAdvanced = fd.courseCode?.trim().startsWith('3');
+    const levelText = isAdvanced ? 'หลักสูตรประกาศนียบัตรวิชาชีพชั้นสูง (ปวส.)' : 'หลักสูตรประกาศนียบัตรวิชาชีพ (ปวช.)';
+    const { theory, practice } = getTheoryPractice(fd.ratio);
+
+    const formatList = (text) => {
+      if (!text) return '';
+      return text.split(/\n/).filter(l => l.trim()).map(l => `<p style="text-indent:1cm;">${l.trim()}</p>`).join('');
+    };
+
+    const html = `<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
+<head><meta charset='utf-8'><title>หลักสูตรรายวิชา ${fd.courseCode}</title>
+<style>
+  @page { size: A4; margin: 2cm 2.5cm; }
+  body { font-family: 'TH Sarabun New', 'Sarabun', sans-serif; font-size: 16pt; line-height: 1.5; }
+  h1 { text-align: center; font-size: 18pt; font-weight: bold; margin-bottom: 5pt; }
+  h2 { text-align: center; font-size: 16pt; font-weight: bold; margin-bottom: 10pt; }
+  .field-label { font-weight: bold; }
+  .field-row { margin-bottom: 3pt; }
+  .indent { text-indent: 1cm; }
+  .section-title { font-weight: bold; margin-top: 12pt; margin-bottom: 6pt; }
+</style>
+</head><body>
+<h1>หลักสูตรรายวิชา</h1>
+<h2>${levelText}</h2>
+
+<p class="field-row">
+  <span class="field-label">ประเภทวิชา</span> ......................
+  <span class="field-label">กลุ่มอาชีพ</span> ......................
+  <span class="field-label">สาขาวิชา</span> ......................
+</p>
+
+<p class="field-row">
+  <span class="field-label">รหัส</span> ${fd.courseCode || '......................'}
+  <span class="field-label">ชื่อวิชา</span> ${fd.courseName || '......................'}
+</p>
+
+<p class="field-row">
+  <span class="field-label">ทฤษฎี</span> ${theory} ชั่วโมง/สัปดาห์
+  <span class="field-label">ปฏิบัติ</span> ${practice} ชั่วโมง/สัปดาห์
+  <span class="field-label">จำนวน</span> ${fd.credits || '...'} หน่วยกิต
+</p>
+
+<p class="field-row">
+  <span class="field-label">อ้างอิงมาตรฐาน</span>
+</p>
+<p class="indent">${fd.standardRef || '-'}</p>
+
+<br/>
+<p class="section-title">ผลลัพธ์การเรียนรู้ระดับรายวิชา</p>
+${formatList(fd.learningOutcomes) || '<p class="indent">-</p>'}
+
+<br/>
+<p class="section-title">จุดประสงค์รายวิชา เพื่อให้</p>
+${formatList(fd.objectives) || '<p class="indent">-</p>'}
+
+<br/>
+<p class="section-title">สมรรถนะรายวิชา</p>
+${formatList(fd.competencies) || '<p class="indent">-</p>'}
+
+<br/>
+<p class="section-title">คำอธิบายรายวิชา</p>
+<p class="indent">${fd.description || '-'}</p>
+
+</body></html>`;
+
+    const blob = new Blob(['\ufeff', html], { type: 'application/msword' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `หลักสูตรรายวิชา_${fd.courseCode || 'export'}.doc`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+  const handleExportCurriculum = () => triggerDownload(_doExportCurriculumWord, { module: 'หลักสูตรรายวิชา', courseCode: formData.courseCode || '', courseName: formData.courseName || '' });
+
   // --- Export ---
   const _doExportWord = () => {
     if (!generatedPlan) return;
@@ -342,11 +421,16 @@ const AnalysisModule = ({
           </div>
         ))}
 
-        <div className="flex justify-between pt-4 border-t">
+        <div className="flex flex-wrap justify-between pt-4 border-t gap-2">
           <button onClick={() => setStep(1)} className="px-4 py-2 text-gray-600 hover:text-gray-800">กลับไปอัปโหลด</button>
-          <button onClick={callGeneration} disabled={loading} className="bg-green-600 text-white px-6 py-2 rounded-lg font-semibold hover:bg-green-700 shadow-lg flex items-center gap-2">
-            {loading ? <Loader2 className="animate-spin" /> : <BookOpen />} สร้างโครงการสอน (Job-Based)
-          </button>
+          <div className="flex gap-2">
+            <button onClick={handleExportCurriculum} className="bg-blue-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-blue-700 shadow-sm flex items-center gap-1.5 text-sm">
+              <FileText size={16} /> Download หลักสูตรรายวิชา
+            </button>
+            <button onClick={callGeneration} disabled={loading} className="bg-green-600 text-white px-6 py-2 rounded-lg font-semibold hover:bg-green-700 shadow-lg flex items-center gap-2">
+              {loading ? <Loader2 className="animate-spin" /> : <BookOpen />} สร้างโครงการสอน (Job-Based)
+            </button>
+          </div>
         </div>
       </div>
     );
