@@ -65,7 +65,7 @@ export const createWordDoc = (title, contentHtml) => {
   const url = URL.createObjectURL(blob);
   const link = document.createElement('a');
   link.href = url;
-  link.download = `${title.replace(/[/\s]/g, '_')}.doc`;
+  link.download = `${title.replace(/[/\s]/g, '_')}.docx`;
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);

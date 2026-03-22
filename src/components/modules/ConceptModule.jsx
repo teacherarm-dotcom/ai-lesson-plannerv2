@@ -71,13 +71,15 @@ const ConceptModule = ({
 
   // --- Full Syllabus Export ---
   const mergeDataForExport = () => {
-    if (!loResults) return [];
-    return loResults.map((lo, index) => ({
-      unitName: lo.unitName,
-      outcome: lo.outcome,
+    // Use conceptResults as primary source (always available at this point)
+    const source = conceptResults || loResults || [];
+    if (source.length === 0) return [];
+    return source.map((item, index) => ({
+      unitName: item.unitName || loResults?.[index]?.unitName || `หน่วยที่ ${index + 1}`,
+      outcome: loResults?.[index]?.outcome || '-',
       competencies: compResults?.[index]?.competencies || [],
       objectives: objResults?.[index] || { cognitive: [], psychomotor: [], affective: [], application: [] },
-      concept: conceptResults?.[index]?.concept || '-',
+      concept: conceptResults?.[index]?.concept || item.concept || '-',
     }));
   };
 

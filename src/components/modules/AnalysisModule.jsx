@@ -252,7 +252,7 @@ ${formatList(fd.competencies) || '<p class="indent">-</p>'}
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = `หลักสูตรรายวิชา_${fd.courseCode || 'export'}.doc`;
+    link.download = `หลักสูตรรายวิชา_${fd.courseCode || 'export'}.docx`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
