@@ -83,31 +83,75 @@ const ConceptModule = ({
     }));
   };
 
+  // --- Build unit plan HTML (template: แผนการจัดการเรียนรู้) ---
+  const buildUnitPlanHtml = (allUnits) => {
+    const fd = formData;
+    const rl = (list) => (!list?.length ? '<p style="margin-left:1cm;">-</p>' : list.map((i) => `<p style="margin-left:1cm;">${i}</p>`).join(''));
+    const conceptList = (text) => {
+      if (!text || text === '-') return '<p style="margin-left:1cm;">-</p>';
+      return text.split(/\n|<br\s*\/?>/).filter(l => l.trim()).map(l => `<p style="margin-left:1cm;">${l.replace(/^\d+\.\s*/, '').replace(/^[-•]\s*/, '').trim()}</p>`).join('');
+    };
+
+    return allUnits.map((unit, idx) => `
+      <div style="page-break-before:${idx > 0 ? 'always' : 'auto'};">
+        <h2 style="text-align:center;font-size:18pt;font-weight:bold;">แผนการจัดการเรียนรู้</h2>
+        <h3 style="text-align:center;font-size:16pt;">หน่วยที่ ${idx + 1}</h3>
+        <p>รหัสวิชา ${fd.courseCode || '...'} ชื่อวิชา ${fd.courseName || '...'}</p>
+        <p>ชื่อหน่วยการเรียนรู้ <b>${unit.unitName}</b></p>
+        <br/>
+        <p><b>1. ผลลัพธ์การเรียนรู้ระดับหน่วยการเรียน</b></p>
+        <p style="margin-left:1cm;">${unit.outcome || '-'}</p>
+        <br/>
+        <p><b>2. อ้างอิงมาตรฐาน/เชื่อมโยงกลุ่มอาชีพ</b></p>
+        <p style="margin-left:1cm;">${fd.standardRef || '-'}</p>
+        <br/>
+        <p><b>3. สมรรถนะประจำหน่วย</b></p>
+        ${rl(unit.competencies)}
+        <br/>
+        <p><b>4. จุดประสงค์เชิงพฤติกรรม</b></p>
+        <p style="margin-left:0.5cm;"><b>4.1 พุทธิพิสัย</b></p>
+        ${rl(unit.objectives?.cognitive)}
+        <p style="margin-left:0.5cm;"><b>4.2 ทักษะพิสัย</b></p>
+        ${rl(unit.objectives?.psychomotor)}
+        <p style="margin-left:0.5cm;"><b>4.3 จิตพิสัย</b></p>
+        ${rl(unit.objectives?.affective)}
+        <p style="margin-left:0.5cm;"><b>4.4 ความสามารถประยุกต์ใช้และรับผิดชอบ</b></p>
+        ${rl(unit.objectives?.application)}
+        <br/>
+        <p><b>5. สาระการเรียนรู้</b></p>
+        ${conceptList(unit.concept)}
+        <br/>
+        <p><b>6. กิจกรรมการเรียนรู้</b></p>
+        <p style="margin-left:1cm;">(คุณครูกำหนดเอง)</p>
+        <br/>
+        <p><b>7. สื่อและแหล่งการเรียนรู้</b></p>
+        <p style="margin-left:1cm;">(คุณครูกำหนดเอง)</p>
+        <br/>
+        <p><b>8. หลักฐานการเรียนรู้</b></p>
+        <p style="margin-left:0.5cm;">8.1 หลักฐานความรู้</p>
+        <p style="margin-left:1cm;">(คุณครูกำหนดเอง)</p>
+        <p style="margin-left:0.5cm;">8.2 หลักฐานการปฏิบัติงาน</p>
+        <p style="margin-left:1cm;">(คุณครูกำหนดเอง)</p>
+        <br/>
+        <p><b>9. การวัดและประเมินผล</b></p>
+        <p style="margin-left:0.5cm;">9.1 เกณฑ์การปฏิบัติงาน</p>
+        <p style="margin-left:1cm;">(คุณครูกำหนดเอง)</p>
+        <p style="margin-left:0.5cm;">9.2 วิธีการประเมิน</p>
+        <p style="margin-left:1cm;">(คุณครูกำหนดเอง)</p>
+        <p style="margin-left:0.5cm;">9.3 เครื่องมือที่ใช้ในการประเมิน</p>
+        <p style="margin-left:1cm;">(คุณครูกำหนดเอง)</p>
+      </div>
+    `).join('');
+  };
+
   const _doExportSummaryWord = () => {
-    console.log('[ExportSummary] conceptResults:', conceptResults?.length, 'loResults:', loResults?.length, 'compResults:', compResults?.length, 'objResults:', objResults?.length);
     const allUnits = mergeDataForExport();
-    console.log('[ExportSummary] allUnits:', allUnits.length);
     if (allUnits.length === 0) {
       alert('ไม่พบข้อมูลสำหรับสร้างเอกสาร กรุณาตรวจสอบว่าได้สร้างข้อมูลครบทุกขั้นตอนแล้ว');
       return;
     }
-    const renderList = (list) => (!list?.length ? '<li>-</li>' : list.map((i) => `<li>${i}</li>`).join(''));
-    const content = allUnits.map((unit, idx) => `
-      <div><h3>หน่วยที่ ${idx + 1} ${unit.unitName}</h3>
-      <h4>1. ผลลัพธ์การเรียนรู้ระดับหน่วยการเรียน</h4><p style="margin-left:20px;">${unit.outcome || '-'}</p>
-      <h4>2. สมรรถนะประจำหน่วย</h4><ul style="margin-left:20px;">${renderList(unit.competencies)}</ul>
-      <h4>3. จุดประสงค์เชิงพฤติกรรม</h4>
-      <div style="margin-left:20px;">
-        <b>3.1 พุทธิพิสัย</b><ul>${renderList(unit.objectives?.cognitive)}</ul>
-        <b>3.2 ทักษะพิสัย</b><ul>${renderList(unit.objectives?.psychomotor)}</ul>
-        <b>3.3 จิตพิสัย</b><ul>${renderList(unit.objectives?.affective)}</ul>
-        <b>3.4 การประยุกต์ใช้ฯ</b><ul>${renderList(unit.objectives?.application)}</ul>
-      </div>
-      <h4>4. สาระการเรียนรู้</h4><ul style="margin-left:20px;">${(unit.concept || '-').split(/\n|<br\s*\/?>/).filter(l => l.trim()).map(l => `<li>${l.replace(/^\d+\.\s*/, '').replace(/^[-•]\s*/, '').trim()}</li>`).join('')}</ul><hr/></div>
-    `).join('');
-    createWordDoc(`Full_Syllabus_${formData.courseCode}`, `<h2 style="text-align:center;">เอกสารสรุปรายวิชา ${formData.courseCode} ${formData.courseName}</h2><hr/>${content}`);
+    createWordDoc(`แผนรายหน่วย_${formData.courseCode}`, buildUnitPlanHtml(allUnits));
   };
-
   const exportSummaryWord = () => dl(_doExportSummaryWord, _metaSummary);
 
   const _doExportSummaryPdf = () => {
@@ -116,22 +160,7 @@ const ConceptModule = ({
       alert('ไม่พบข้อมูลสำหรับสร้างเอกสาร กรุณาตรวจสอบว่าได้สร้างข้อมูลครบทุกขั้นตอนแล้ว');
       return;
     }
-    const renderList = (list) => (!list?.length ? '<li>-</li>' : list.map((i) => `<li>${i}</li>`).join(''));
-    const content = allUnits.map((unit, idx) => `
-      <div style="margin-bottom:30px;border-bottom:1px solid #ccc;padding-bottom:20px;">
-      <h3>หน่วยที่ ${idx + 1} ${unit.unitName}</h3>
-      <p><b>1. ผลลัพธ์การเรียนรู้</b><br/>${unit.outcome || '-'}</p>
-      <p><b>2. สมรรถนะประจำหน่วย</b></p><ul>${renderList(unit.competencies)}</ul>
-      <p><b>3. จุดประสงค์เชิงพฤติกรรม</b></p>
-      <div style="padding-left:20px;">
-        <p><b>3.1 พุทธิพิสัย:</b></p><ul>${renderList(unit.objectives?.cognitive)}</ul>
-        <p><b>3.2 ทักษะพิสัย:</b></p><ul>${renderList(unit.objectives?.psychomotor)}</ul>
-        <p><b>3.3 จิตพิสัย:</b></p><ul>${renderList(unit.objectives?.affective)}</ul>
-        <p><b>3.4 การประยุกต์ใช้ฯ:</b></p><ul>${renderList(unit.objectives?.application)}</ul>
-      </div>
-      <p><b>4. สาระการเรียนรู้</b></p><ul>${(unit.concept || '-').split(/\n|<br\s*\/?>/).filter(l => l.trim()).map(l => `<li>${l.replace(/^\d+\.\s*/, '').replace(/^[-•]\s*/, '').trim()}</li>`).join('')}</ul></div>
-    `).join('');
-    printToPdf(`เอกสารสรุปรายวิชา: ${formData.courseName}`, content);
+    printToPdf(`แผนการจัดการเรียนรู้: ${formData.courseName}`, buildUnitPlanHtml(allUnits));
   };
   const exportSummaryPdf = () => dl(_doExportSummaryPdf, _metaSummary);
 
@@ -213,10 +242,10 @@ const ConceptModule = ({
 
             <div className="flex flex-col md:flex-row justify-center gap-4 mb-6">
               <button onClick={exportSummaryWord} className="bg-blue-700 text-white px-6 py-3 rounded-xl font-bold hover:bg-blue-800 shadow-lg flex items-center justify-center gap-2">
-                <FileStack size={20} /> ดาวน์โหลดเอกสารสรุป (Word)
+                <FileStack size={20} /> ดาวน์โหลดแผนรายหน่วย (Word)
               </button>
               <button onClick={exportSummaryPdf} className="bg-red-600 text-white px-6 py-3 rounded-xl font-bold hover:bg-red-700 shadow-lg flex items-center justify-center gap-2">
-                <FileDown size={20} /> ดาวน์โหลด PDF (Full Syllabus)
+                <FileDown size={20} /> ดาวน์โหลดแผนรายหน่วย (PDF)
               </button>
             </div>
 
