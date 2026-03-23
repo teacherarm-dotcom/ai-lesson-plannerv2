@@ -148,21 +148,32 @@ const ConceptModule = ({
 
   const _doExportSummaryWord = () => {
     const allUnits = mergeDataForExport();
+    console.log('[ConceptModule] Export Word — units:', allUnits.length, 'conceptResults:', conceptResults?.length, 'loResults:', loResults?.length, 'compResults:', compResults?.length, 'objResults:', objResults?.length);
     if (allUnits.length === 0) {
-      alert('ไม่พบข้อมูลสำหรับสร้างเอกสาร กรุณาตรวจสอบว่าได้สร้างข้อมูลครบทุกขั้นตอนแล้ว');
+      onError?.('ไม่พบข้อมูลสำหรับสร้างเอกสาร กรุณาตรวจสอบว่าได้สร้างข้อมูลครบทุกขั้นตอนแล้ว');
       return;
     }
-    createWordDoc(`แผนรายหน่วย_${formData.courseCode}`, buildUnitPlanHtml(allUnits));
+    try {
+      createWordDoc(`แผนรายหน่วย_${formData.courseCode}`, buildUnitPlanHtml(allUnits));
+    } catch (err) {
+      console.error('[ConceptModule] Export Word error:', err);
+      onError?.(`เกิดข้อผิดพลาดในการสร้างไฟล์: ${err.message}`);
+    }
   };
   const exportSummaryWord = () => dl(_doExportSummaryWord, _metaSummary);
 
   const _doExportSummaryPdf = () => {
     const allUnits = mergeDataForExport();
     if (allUnits.length === 0) {
-      alert('ไม่พบข้อมูลสำหรับสร้างเอกสาร กรุณาตรวจสอบว่าได้สร้างข้อมูลครบทุกขั้นตอนแล้ว');
+      onError?.('ไม่พบข้อมูลสำหรับสร้างเอกสาร กรุณาตรวจสอบว่าได้สร้างข้อมูลครบทุกขั้นตอนแล้ว');
       return;
     }
-    printToPdf(`แผนการจัดการเรียนรู้: ${formData.courseName}`, buildUnitPlanHtml(allUnits));
+    try {
+      printToPdf(`แผนการจัดการเรียนรู้: ${formData.courseName}`, buildUnitPlanHtml(allUnits));
+    } catch (err) {
+      console.error('[ConceptModule] Export PDF error:', err);
+      onError?.(`เกิดข้อผิดพลาดในการสร้าง PDF: ${err.message}`);
+    }
   };
   const exportSummaryPdf = () => dl(_doExportSummaryPdf, _metaSummary);
 
