@@ -158,7 +158,7 @@ const StandardSearchPopup = ({ isOpen, onClose, providerId, apiKey, onStandardSe
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = 'ตารางมาตรฐานอาชีพ.docx';
+    link.download = 'ตารางมาตรฐานอาชีพ.doc';
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
