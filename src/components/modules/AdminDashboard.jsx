@@ -328,6 +328,17 @@ const AdminDashboard = () => {
     { id: 'overview', label: 'ภาพรวม', icon: BarChart3 },
     { id: 'users', label: 'ผู้ใช้งาน', icon: Users },
     { id: 'activity', label: 'กิจกรรม', icon: TrendingUp },
+    { id: 'changelog', label: 'บันทึกอัปเดต', icon: Calendar },
+  ];
+
+  // Changelog data
+  const CHANGELOG = [
+    { date: '2026-03-24', version: 'v2.5.0', changes: ['เพิ่ม Admin Dashboard พร้อมกราฟวงกลม', 'เพิ่ม pagination ผู้ใช้ 10 คน/หน้า', 'เพิ่มคอลัมน์ชื่อ-นามสกุลในกิจกรรม', 'แก้ hooks order violation ที่ทำให้หน้าจอขาว'] },
+    { date: '2026-03-24', version: 'v2.4.0', changes: ['ปรับตารางวิเคราะห์งาน 5 คอลัมน์ (งานหลัก/งานย่อย/สมรรถนะย่อย/ความรู้/ทักษะ)', 'เปลี่ยนสาระสำคัญเป็นแสดงหัวข้อ (bullet points)', 'เพิ่ม 3 โหมดแบ่งหน่วย: งานหลัก/งานย่อย/AI คิดให้'] },
+    { date: '2026-03-23', version: 'v2.3.0', changes: ['เพิ่มฟอร์มกรอกข้อมูลก่อน Download', 'เก็บข้อมูลผู้ใช้ลง Google Sheet', 'เพิ่มสถิติการใช้งานจริงจาก Google Sheet', 'เพิ่มปุ่มล้างข้อมูลแคชทั้งหมด'] },
+    { date: '2026-03-22', version: 'v2.2.0', changes: ['รองรับ 4 AI Providers: Gemini/OpenAI/Claude/DeepSeek', 'แสดงสถานะ API (พร้อมใช้งาน/ใช้ไม่ได้)', 'เพิ่มน้องเพชรช่วยค้นหามาตรฐานอาชีพ', 'เพิ่มส่วนหัวไฟล์ Word มาตรฐานอาชีพ'] },
+    { date: '2026-03-21', version: 'v2.1.0', changes: ['แก้ CompetencyModule crash (providerId missing)', 'แก้ error message แสดงสาเหตุจริง', 'เพิ่ม auto-retry สำหรับ rate limit'] },
+    { date: '2026-03-20', version: 'v2.0.0', changes: ['Version 1 — Baseline', 'แยก code เป็น modules', 'รองรับ multi-provider AI', '5 modules: วิเคราะห์งาน/ผลลัพธ์/สมรรถนะ/จุดประสงค์/เนื้อหาสาระ'] },
   ];
 
   // Province heatmap data
@@ -673,6 +684,32 @@ const AdminDashboard = () => {
           {stats.length > 100 && (
             <p className="text-xs text-gray-400 text-center mt-2">แสดง 100 รายการล่าสุด จากทั้งหมด {stats.length} รายการ</p>
           )}
+        </div>
+      )}
+
+      {activeTab === 'changelog' && (
+        <div className="space-y-4">
+          <h3 className="text-lg font-bold text-gray-800 flex items-center gap-2"><Calendar size={20} /> บันทึกการอัปเดตระบบ</h3>
+          <div className="space-y-3">
+            {CHANGELOG.map((log, idx) => (
+              <div key={idx} className="border border-gray-200 rounded-xl p-4 hover:bg-gray-50/50 transition">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2">
+                    <span className="bg-blue-100 text-blue-700 text-xs font-bold px-2.5 py-1 rounded-full">{log.version}</span>
+                    <span className="text-sm text-gray-500">{log.date}</span>
+                  </div>
+                </div>
+                <ul className="space-y-1 ml-4">
+                  {log.changes.map((change, cIdx) => (
+                    <li key={cIdx} className="text-sm text-gray-700 flex items-start gap-2">
+                      <span className="text-green-500 mt-0.5">•</span>
+                      <span>{change}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </div>
         </div>
       )}
     </div>

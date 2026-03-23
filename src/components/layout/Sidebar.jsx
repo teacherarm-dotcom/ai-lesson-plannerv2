@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { BookOpen, ChevronRight, Facebook, Youtube, Globe, Instagram, Eye, Download, Sparkles, Trash2 } from 'lucide-react';
 import { MENU_ITEMS } from '../../constants/menuItems.jsx';
-import { getUsageStats, trackVisit } from '../../utils/usageStats';
+import { getUsageStats, fetchRealStats, trackVisit } from '../../utils/usageStats';
 
 const TikTokIcon = () => (
   <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -22,9 +22,14 @@ const Sidebar = ({ activeMenu, setActiveMenu, onMobileClose }) => {
 
   useEffect(() => {
     trackVisit();
+    // Show localStorage stats immediately
     setStats(getUsageStats());
-    // Refresh stats every 5 seconds (to catch downloads from other modules)
-    const interval = setInterval(() => setStats(getUsageStats()), 5000);
+    // Then fetch real stats from Google Sheet
+    fetchRealStats().then((real) => setStats(real)).catch(() => {});
+    // Refresh from Google Sheet every 60 seconds
+    const interval = setInterval(() => {
+      fetchRealStats().then((real) => setStats(real)).catch(() => {});
+    }, 60000);
     return () => clearInterval(interval);
   }, []);
 

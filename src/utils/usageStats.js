@@ -1,11 +1,16 @@
 const STATS_KEY = 'usage_stats';
 const GOOGLE_SHEET_URL = 'https://script.google.com/macros/s/AKfycbyxjQPVEx1FGPOvkCZ43V4STKKhY6VCgodo-A25ykPGiCWaIJGxDe8IvWBvNXcP7GLz/exec';
 
-const getStats = () => {
+// Cache for real stats from Google Sheet
+let cachedRealStats = null;
+let lastFetchTime = 0;
+const CACHE_TTL = 60000; // 1 minute cache
+
+const getLocalStats = () => {
   try { return JSON.parse(localStorage.getItem(STATS_KEY)) || {}; } catch { return {}; }
 };
 
-const saveStats = (stats) => localStorage.setItem(STATS_KEY, JSON.stringify(stats));
+const saveLocalStats = (stats) => localStorage.setItem(STATS_KEY, JSON.stringify(stats));
 
 /**
  * Send event to Google Sheet (fire-and-forget)
@@ -26,13 +31,13 @@ const sendToSheet = (data) => {
  * Track a page visit (once per session)
  */
 export const trackVisit = () => {
-  const stats = getStats();
+  const stats = getLocalStats();
   const today = new Date().toISOString().split('T')[0];
   if (stats.lastVisitDate === today) return;
 
   stats.totalVisits = (stats.totalVisits || 0) + 1;
   stats.lastVisitDate = today;
-  saveStats(stats);
+  saveLocalStats(stats);
 
   sendToSheet({
     type: 'usage_stats',
@@ -40,15 +45,18 @@ export const trackVisit = () => {
     detail: `ครั้งที่ ${stats.totalVisits}`,
     userAgent: navigator.userAgent,
   });
+
+  // Invalidate cache so next fetch gets fresh data
+  cachedRealStats = null;
 };
 
 /**
  * Track a download + send to Google Sheet
  */
 export const trackDownload = (module = '', courseInfo = '') => {
-  const stats = getStats();
+  const stats = getLocalStats();
   stats.totalDownloads = (stats.totalDownloads || 0) + 1;
-  saveStats(stats);
+  saveLocalStats(stats);
 
   sendToSheet({
     type: 'usage_stats',
@@ -56,15 +64,17 @@ export const trackDownload = (module = '', courseInfo = '') => {
     detail: `${module}${courseInfo ? ' — ' + courseInfo : ''} (ครั้งที่ ${stats.totalDownloads})`,
     userAgent: navigator.userAgent,
   });
+
+  cachedRealStats = null;
 };
 
 /**
  * Track AI generation + send to Google Sheet
  */
 export const trackGeneration = (module = '', courseInfo = '') => {
-  const stats = getStats();
+  const stats = getLocalStats();
   stats.totalGenerations = (stats.totalGenerations || 0) + 1;
-  saveStats(stats);
+  saveLocalStats(stats);
 
   sendToSheet({
     type: 'usage_stats',
@@ -72,6 +82,8 @@ export const trackGeneration = (module = '', courseInfo = '') => {
     detail: `${module}${courseInfo ? ' — ' + courseInfo : ''} (ครั้งที่ ${stats.totalGenerations})`,
     userAgent: navigator.userAgent,
   });
+
+  cachedRealStats = null;
 };
 
 /**
@@ -88,10 +100,37 @@ export const sendUserDownloadInfo = (userInfo, courseInfo = {}, module = '') => 
 };
 
 /**
- * Get all stats (for display in sidebar)
+ * Fetch REAL stats from Google Sheet (with 1-minute cache)
+ * Falls back to localStorage if fetch fails
+ */
+export const fetchRealStats = async () => {
+  const now = Date.now();
+  if (cachedRealStats && (now - lastFetchTime) < CACHE_TTL) {
+    return cachedRealStats;
+  }
+
+  try {
+    const res = await fetch(`${GOOGLE_SHEET_URL}?action=dashboard`, { signal: AbortSignal.timeout(8000) });
+    const json = await res.json();
+    const summary = json?.summary || {};
+    cachedRealStats = {
+      totalVisits: summary.totalVisits || 0,
+      totalDownloads: summary.totalDownloads || 0,
+      totalGenerations: summary.totalGenerations || 0,
+    };
+    lastFetchTime = now;
+    return cachedRealStats;
+  } catch {
+    // Fallback to localStorage
+    return getUsageStats();
+  }
+};
+
+/**
+ * Get stats from localStorage (for immediate display before fetch completes)
  */
 export const getUsageStats = () => {
-  const stats = getStats();
+  const stats = getLocalStats();
   return {
     totalVisits: stats.totalVisits || 0,
     totalDownloads: stats.totalDownloads || 0,
