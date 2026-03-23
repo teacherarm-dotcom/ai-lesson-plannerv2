@@ -20,6 +20,7 @@ const ConceptModule = ({
   const dl = triggerDownload || ((fn) => { console.warn('[ConceptModule] triggerDownload not available, calling directly'); fn(); });
   const hasInternal = !!(formData.courseCode && generatedPlan && unitDivisionPlan && loResults && compResults && objResults);
   const [conceptStep, setConceptStep] = useState(1);
+  const [displayMode, setDisplayMode] = useState('list'); // 'list' or 'paragraph'
   const { callApi, loading } = useAiApi(providerId, apiKey);
 
   // 6 file upload hooks for manual mode
@@ -213,6 +214,23 @@ const ConceptModule = ({
             <ExportButtons onRegenerate={generate} onExportWord={exportWord} onExportPdf={exportPdf} />
           </div>
 
+          {/* Display mode toggle */}
+          <div className="flex items-center gap-2 mb-3">
+            <span className="text-xs text-gray-500 font-medium">รูปแบบการแสดงผล:</span>
+            <button
+              onClick={() => setDisplayMode('list')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition border ${displayMode === 'list' ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-600 border-gray-300 hover:bg-gray-50'}`}
+            >
+              📋 แสดงเป็นข้อ
+            </button>
+            <button
+              onClick={() => setDisplayMode('paragraph')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition border ${displayMode === 'paragraph' ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-600 border-gray-300 hover:bg-gray-50'}`}
+            >
+              📄 แสดงเป็นความเรียง
+            </button>
+          </div>
+
           <div className="overflow-x-auto border border-gray-200 rounded-xl shadow-sm">
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50"><tr><th className="px-4 py-3 text-left text-sm font-bold text-gray-700 w-1/4">ชื่อหน่วย</th><th className="px-4 py-3 text-left text-sm font-bold text-gray-700">เนื้อหาสาระ (Key Concept)</th></tr></thead>
@@ -222,11 +240,15 @@ const ConceptModule = ({
                     <td className="px-4 py-4 text-sm font-medium text-gray-900 align-top">{item.unitName}</td>
                     <td className="px-4 py-4 text-sm text-gray-600 align-top leading-relaxed">
                       {typeof item.concept === 'string' ? (
-                        <ul className="list-disc pl-4 space-y-1">
-                          {item.concept.split(/\n|<br\s*\/?>/).filter(l => l.trim()).map((line, i) => (
-                            <li key={i}>{line.replace(/^\d+\.\s*/, '').replace(/^[-•]\s*/, '').trim()}</li>
-                          ))}
-                        </ul>
+                        displayMode === 'list' ? (
+                          <ul className="list-disc pl-4 space-y-1">
+                            {item.concept.split(/\n|<br\s*\/?>/).filter(l => l.trim()).map((line, i) => (
+                              <li key={i}>{line.replace(/^\d+\.\s*/, '').replace(/^[-•]\s*/, '').trim()}</li>
+                            ))}
+                          </ul>
+                        ) : (
+                          <p>{item.concept.split(/\n|<br\s*\/?>/).filter(l => l.trim()).map(l => l.replace(/^\d+\.\s*/, '').replace(/^[-•]\s*/, '').trim()).join(' ')}</p>
+                        )
                       ) : item.concept}
                     </td>
                   </tr>

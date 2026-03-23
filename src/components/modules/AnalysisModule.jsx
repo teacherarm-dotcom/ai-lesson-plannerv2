@@ -142,6 +142,7 @@ const AnalysisModule = ({
 
   // --- Generation ---
   const [unitMode, setUnitMode] = useState('auto');
+  const [cachedAutoUnits, setCachedAutoUnits] = useState(null); // Cache first AI-generated units
 
   // Parse analysis table rows from markdown
   const parseAnalysisRows = (markdown) => {
@@ -208,7 +209,7 @@ const AnalysisModule = ({
     return `${header}\n${sep}\n${dataRows}`;
   };
 
-  const generateUnitDivision = async (planText, fd, mode = 'auto') => {
+  const generateUnitDivision = async (planText, fd, mode = 'auto', forceNew = false) => {
     setUnitMode(mode);
 
     // duty / task mode: build from existing data (no API call)
@@ -222,6 +223,12 @@ const AnalysisModule = ({
       return;
     }
 
+    // auto mode: use cached result if available (unless forceNew)
+    if (!forceNew && cachedAutoUnits) {
+      setUnitDivisionPlan(cachedAutoUnits);
+      return;
+    }
+
     // auto mode: call API
     setDividingUnits(true);
     try {
@@ -229,7 +236,10 @@ const AnalysisModule = ({
       const { theory, practice } = getTheoryPractice(fd.ratio);
       const prompt = buildUnitDivisionPrompt(planText, weeks, theory, practice, fd.description, mode);
       const text = await callApi([{ text: prompt }], { statusText: 'กำลังแบ่งหน่วยการเรียนรู้...' });
-      if (text) setUnitDivisionPlan(text);
+      if (text) {
+        setUnitDivisionPlan(text);
+        setCachedAutoUnits(text); // Cache for later
+      }
     } catch { /* silently fail */ }
     finally { setDividingUnits(false); }
   };
@@ -556,7 +566,7 @@ ${formatList(fd.competencies) || '<p class="indent">-</p>'}
             </div>
             {/* Unit division mode selector */}
             <div className="flex flex-wrap gap-2 bg-blue-100/50 p-2 rounded-lg">
-              <span className="text-xs text-blue-700 font-medium self-center mr-1">สร้างหน่วยใหม่:</span>
+              <span className="text-xs text-blue-700 font-medium self-center mr-1">เลือกโหมด:</span>
               {[
                 { mode: 'duty', label: 'นำงานหลักมาเป็นหน่วย', icon: '📋' },
                 { mode: 'task', label: 'นำงานย่อยมาเป็นหน่วย', icon: '📝' },
@@ -575,6 +585,14 @@ ${formatList(fd.competencies) || '<p class="indent">-</p>'}
                   {icon} {label}
                 </button>
               ))}
+              <span className="border-l border-blue-300 mx-1" />
+              <button
+                onClick={() => { setUnitDivisionPlan(null); setCachedAutoUnits(null); generateUnitDivision(generatedPlan, formData, 'auto', true); }}
+                disabled={dividingUnits}
+                className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium transition border bg-orange-50 text-orange-700 border-orange-300 hover:bg-orange-100 disabled:opacity-50"
+              >
+                🔄 เริ่มใหม่ (AI คิดใหม่)
+              </button>
             </div>
           </div>
           <EditableUnitTable markdown={unitDivisionPlan} onSave={(newMd) => setUnitDivisionPlan(newMd)} courseCode={formData.courseCode} ratio={formData.ratio} />
