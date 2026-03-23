@@ -44,6 +44,12 @@ const AdminDashboard = () => {
   const [filterPosition, setFilterPosition] = useState('');
   const [filterAffiliation, setFilterAffiliation] = useState('');
 
+  // Pagination (must be declared here with all other hooks, not after useMemo)
+  const [currentPage, setCurrentPage] = useState(1);
+
+  // Reset page when filters change (MUST be before any early return)
+  useEffect(() => { setCurrentPage(1); }, [searchTerm, filterRegion, filterProvince, filterPosition, filterAffiliation]);
+
   const handleLogin = () => {
     if (code === ADMIN_CODE) {
       setIsLoggedIn(true);
@@ -181,13 +187,9 @@ const AdminDashboard = () => {
   });
 
   // Pagination for users
-  const [currentPage, setCurrentPage] = useState(1);
   const ITEMS_PER_PAGE = 10;
   const totalPages = Math.max(1, Math.ceil(sortedUsers.length / ITEMS_PER_PAGE));
   const paginatedUsers = sortedUsers.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
-
-  // Reset page when filters change
-  useEffect(() => { setCurrentPage(1); }, [searchTerm, filterRegion, filterProvince, filterPosition, filterAffiliation]);
 
   const toggleSort = (field) => {
     if (sortField === field) setSortAsc(!sortAsc);
