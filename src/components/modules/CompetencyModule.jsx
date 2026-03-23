@@ -14,7 +14,7 @@ const CompetencyModule = ({
   formData, onError, onNavigate,
   triggerDownload,
 }) => {
-  const dl = triggerDownload;
+  const dl = triggerDownload || ((fn) => fn());
   const hasPreviousData = !!(loResults && unitDivisionPlan);
   const [selectedLevel, setSelectedLevel] = useState('ปวช.');
   const uploadHook = useFileUpload({ onError });

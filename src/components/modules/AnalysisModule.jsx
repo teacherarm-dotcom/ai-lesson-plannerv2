@@ -282,7 +282,7 @@ ${formatList(fd.competencies) || '<p class="indent">-</p>'}
   };
 
   // Wrap all downloads with user info check
-  const dl = triggerDownload;
+  const dl = triggerDownload || ((fn) => fn());
   const _meta = { module: 'วิเคราะห์งาน', courseCode: formData.courseCode || '', courseName: formData.courseName || '' };
   const handleExportWord = () => dl(_doExportWord, _meta);
   const handleSavePdf = () => dl(_doSavePdf, _meta);

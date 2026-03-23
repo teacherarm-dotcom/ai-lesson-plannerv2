@@ -20,7 +20,7 @@ const ObjectivesModule = ({
   onError, onNavigate,
   triggerDownload,
 }) => {
-  const dl = triggerDownload;
+  const dl = triggerDownload || ((fn) => fn());
   const hasInternal = !!(formData.courseCode && compResults && loResults);
   const [objStep, setObjStep] = useState(1);
   const { callApi, loading, loadingText } = useAiApi(providerId, apiKey);

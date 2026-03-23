@@ -16,7 +16,8 @@ const ConceptModule = ({
   conceptResults, setConceptResults,
   onError, triggerDownload,
 }) => {
-  const dl = triggerDownload;
+  // Fallback: if triggerDownload is not provided, just call the function directly
+  const dl = triggerDownload || ((fn) => { console.warn('[ConceptModule] triggerDownload not available, calling directly'); fn(); });
   const hasInternal = !!(formData.courseCode && generatedPlan && unitDivisionPlan && loResults && compResults && objResults);
   const [conceptStep, setConceptStep] = useState(1);
   const { callApi, loading } = useAiApi(providerId, apiKey);
