@@ -141,12 +141,15 @@ const AnalysisModule = ({
   };
 
   // --- Generation ---
-  const generateUnitDivision = async (planText, fd) => {
+  const [unitMode, setUnitMode] = useState('auto');
+
+  const generateUnitDivision = async (planText, fd, mode = 'auto') => {
     setDividingUnits(true);
+    setUnitMode(mode);
     try {
       const weeks = getWeeksFromCode(fd.courseCode);
       const { theory, practice } = getTheoryPractice(fd.ratio);
-      const prompt = buildUnitDivisionPrompt(planText, weeks, theory, practice, fd.description);
+      const prompt = buildUnitDivisionPrompt(planText, weeks, theory, practice, fd.description, mode);
       const text = await callApi([{ text: prompt }], { statusText: 'กำลังแบ่งหน่วยการเรียนรู้...' });
       if (text) setUnitDivisionPlan(text);
     } catch { /* silently fail */ }
@@ -465,14 +468,36 @@ ${formatList(fd.competencies) || '<p class="indent">-</p>'}
 
       {unitDivisionPlan && (
         <div className="bg-blue-50 p-2 md:p-6 rounded-xl shadow-sm border border-blue-200">
-          <div className="flex items-center justify-between mb-4">
-            <div className="text-sm text-blue-800 font-bold flex items-center gap-2"><Sparkles size={16} /> ตารางแบ่งหน่วยการเรียนรู้ (Learning Units)</div>
-            <ExportButtons
-              onRegenerate={() => { setUnitDivisionPlan(null); generateUnitDivision(generatedPlan, formData); }}
-              onExportWord={handleExportUnitsWord}
-              onExportPdf={handleExportUnitsPdf}
-              regenerateLabel="สร้างใหม่"
-            />
+          <div className="flex flex-col gap-3 mb-4">
+            <div className="flex items-center justify-between">
+              <div className="text-sm text-blue-800 font-bold flex items-center gap-2"><Sparkles size={16} /> ตารางแบ่งหน่วยการเรียนรู้ (Learning Units)</div>
+              <ExportButtons
+                onExportWord={handleExportUnitsWord}
+                onExportPdf={handleExportUnitsPdf}
+              />
+            </div>
+            {/* Unit division mode selector */}
+            <div className="flex flex-wrap gap-2 bg-blue-100/50 p-2 rounded-lg">
+              <span className="text-xs text-blue-700 font-medium self-center mr-1">สร้างหน่วยใหม่:</span>
+              {[
+                { mode: 'duty', label: 'นำงานหลักมาเป็นหน่วย', icon: '📋' },
+                { mode: 'task', label: 'นำงานย่อยมาเป็นหน่วย', icon: '📝' },
+                { mode: 'auto', label: 'ให้ AI คิดให้', icon: '🤖' },
+              ].map(({ mode, label, icon }) => (
+                <button
+                  key={mode}
+                  onClick={() => { setUnitDivisionPlan(null); generateUnitDivision(generatedPlan, formData, mode); }}
+                  disabled={dividingUnits}
+                  className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium transition border ${
+                    unitMode === mode
+                      ? 'bg-blue-600 text-white border-blue-600'
+                      : 'bg-white text-blue-700 border-blue-300 hover:bg-blue-50'
+                  } disabled:opacity-50`}
+                >
+                  {icon} {label}
+                </button>
+              ))}
+            </div>
           </div>
           <EditableUnitTable markdown={unitDivisionPlan} onSave={(newMd) => setUnitDivisionPlan(newMd)} courseCode={formData.courseCode} ratio={formData.ratio} />
           <div className="mt-4 flex items-start gap-2 text-xs text-orange-700 bg-orange-50 p-3 rounded-lg border border-orange-200">
