@@ -143,9 +143,87 @@ const AnalysisModule = ({
   // --- Generation ---
   const [unitMode, setUnitMode] = useState('auto');
 
+  // Parse analysis table rows from markdown
+  const parseAnalysisRows = (markdown) => {
+    if (!markdown) return [];
+    const clean = markdown.replace(/```markdown/g, '').replace(/```/g, '').trim();
+    const lines = clean.split('\n').map(l => l.trim()).filter(Boolean);
+    const sepIdx = lines.findIndex(l => l.startsWith('|') && l.includes('---'));
+    if (sepIdx === -1) return [];
+    return lines.slice(sepIdx + 1).filter(l => l.startsWith('|')).map(line => {
+      const cells = line.split('|').filter((c, i, arr) => i !== 0 && i !== arr.length - 1).map(c => c.trim());
+      return { duty: cells[0] || '', task: cells[1] || '', subComp: cells[2] || '', knowledge: cells[3] || '', skills: cells[4] || '' };
+    });
+  };
+
+  // Build unit table from duty or task mode (no API call)
+  const buildUnitsFromAnalysis = (mode) => {
+    const rows = parseAnalysisRows(generatedPlan);
+    if (rows.length === 0) return null;
+    const weeks = getWeeksFromCode(formData.courseCode);
+    const { theory, practice } = getTheoryPractice(formData.ratio);
+    const hrsPerWeek = theory + practice;
+
+    let units = [];
+
+    if (mode === 'duty') {
+      // Each duty = 1 unit, tasks become topics
+      rows.forEach(r => {
+        const dutyName = r.duty.replace(/^\*\*/, '').replace(/\*\*$/, '').replace(/^\d+\.\s*/, '').trim();
+        if (!dutyName) return;
+        const existing = units.find(u => u.rawDuty === dutyName);
+        if (existing) {
+          if (r.task) existing.topics.push(r.task.replace(/<br>/g, '\n'));
+        } else {
+          units.push({ rawDuty: dutyName, name: dutyName, topics: r.task ? [r.task.replace(/<br>/g, '\n')] : [] });
+        }
+      });
+    } else {
+      // task mode: each task line = 1 unit (or group small ones)
+      rows.forEach(r => {
+        const tasks = r.task.split(/<br\s*\/?>/i).map(t => t.replace(/^\d+\.\d*\s*/, '').trim()).filter(Boolean);
+        tasks.forEach(t => {
+          units.push({ name: t, topics: [t] });
+        });
+      });
+    }
+
+    if (units.length === 0) return null;
+
+    // Distribute weeks evenly
+    const weeksPerUnit = Math.max(1, Math.floor(weeks / units.length));
+    let remainingWeeks = weeks;
+
+    const header = '| หน่วยที่ | ชื่อหน่วยการเรียนรู้ | หัวข้อเรื่อง (Topics) | ทฤษฎี (ชม.) | ปฏิบัติ (ชม.) | รวม (ชม.) |';
+    const sep = '| --- | --- | --- | --- | --- | --- |';
+    const dataRows = units.map((u, i) => {
+      const w = (i === units.length - 1) ? remainingWeeks : weeksPerUnit;
+      remainingWeeks -= w;
+      const t = theory * w;
+      const p = practice * w;
+      const topicsStr = u.topics.join('<br>');
+      return `| หน่วยที่ ${i + 1} | ${u.name} | ${topicsStr} | ${t} | ${p} | ${t + p} |`;
+    }).join('\n');
+
+    return `${header}\n${sep}\n${dataRows}`;
+  };
+
   const generateUnitDivision = async (planText, fd, mode = 'auto') => {
-    setDividingUnits(true);
     setUnitMode(mode);
+
+    // duty / task mode: build from existing data (no API call)
+    if (mode === 'duty' || mode === 'task') {
+      const result = buildUnitsFromAnalysis(mode);
+      if (result) {
+        setUnitDivisionPlan(result);
+      } else {
+        onError('ไม่สามารถสร้างหน่วยจากข้อมูลที่มี กรุณาลองโหมด "ให้ AI คิดให้"');
+      }
+      return;
+    }
+
+    // auto mode: call API
+    setDividingUnits(true);
     try {
       const weeks = getWeeksFromCode(fd.courseCode);
       const { theory, practice } = getTheoryPractice(fd.ratio);
