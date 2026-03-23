@@ -43,12 +43,14 @@ const AdminDashboard = () => {
   const [filterProvince, setFilterProvince] = useState('');
   const [filterPosition, setFilterPosition] = useState('');
   const [filterAffiliation, setFilterAffiliation] = useState('');
+  const [filterDateFrom, setFilterDateFrom] = useState('');
+  const [filterDateTo, setFilterDateTo] = useState('');
 
   // Pagination (must be declared here with all other hooks, not after useMemo)
   const [currentPage, setCurrentPage] = useState(1);
 
   // Reset page when filters change (MUST be before any early return)
-  useEffect(() => { setCurrentPage(1); }, [searchTerm, filterRegion, filterProvince, filterPosition, filterAffiliation]);
+  useEffect(() => { setCurrentPage(1); }, [searchTerm, filterRegion, filterProvince, filterPosition, filterAffiliation, filterDateFrom, filterDateTo]);
 
   const handleLogin = () => {
     if (code === ADMIN_CODE) {
@@ -165,13 +167,27 @@ const AdminDashboard = () => {
   const provinceCounts = {};
   dedupUsers.forEach((u) => { const p = u.province || 'ไม่ระบุ'; provinceCounts[p] = (provinceCounts[p] || 0) + 1; });
 
-  // Filter users by search + dropdown filters
+  // Helper: parse Thai date "dd/MM/yyyy HH:mm:ss" or "dd/MM/yyyy" to comparable string "yyyy-MM-dd"
+  const parseThaiDate = (dateStr) => {
+    if (!dateStr) return '';
+    const parts = dateStr.split(' ')[0].split('/');
+    if (parts.length === 3) return `${parts[2]}-${parts[1].padStart(2,'0')}-${parts[0].padStart(2,'0')}`;
+    return dateStr;
+  };
+
+  // Filter users by search + dropdown + date filters
   const filteredUsers = dedupUsers.filter((u) => {
     // Dropdown filters (AND logic)
     if (filterRegion && u.region !== filterRegion) return false;
     if (filterProvince && u.province !== filterProvince) return false;
     if (filterPosition && u.position !== filterPosition) return false;
     if (filterAffiliation && u.affiliation !== filterAffiliation) return false;
+    // Date range filter
+    if (filterDateFrom || filterDateTo) {
+      const d = parseThaiDate(u.date);
+      if (filterDateFrom && d < filterDateFrom) return false;
+      if (filterDateTo && d > filterDateTo) return false;
+    }
     // Text search
     if (!searchTerm) return true;
     const term = searchTerm.toLowerCase();
@@ -498,9 +514,28 @@ const AdminDashboard = () => {
                 {uniqueAffiliations.map((a) => <option key={a} value={a}>{a}</option>)}
               </select>
             </div>
-            {(filterRegion || filterProvince || filterPosition || filterAffiliation) && (
+            {/* Date range filter */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mt-2">
+              <div className="col-span-2 md:col-span-2 flex items-center gap-2">
+                <label className="text-xs text-gray-500 whitespace-nowrap">วันที่:</label>
+                <input
+                  type="date"
+                  value={filterDateFrom}
+                  onChange={(e) => setFilterDateFrom(e.target.value)}
+                  className="flex-1 px-2 py-1.5 border border-gray-300 rounded-lg text-xs focus:ring-2 focus:ring-blue-500 bg-white"
+                />
+                <span className="text-xs text-gray-400">ถึง</span>
+                <input
+                  type="date"
+                  value={filterDateTo}
+                  onChange={(e) => setFilterDateTo(e.target.value)}
+                  className="flex-1 px-2 py-1.5 border border-gray-300 rounded-lg text-xs focus:ring-2 focus:ring-blue-500 bg-white"
+                />
+              </div>
+            </div>
+            {(filterRegion || filterProvince || filterPosition || filterAffiliation || filterDateFrom || filterDateTo) && (
               <button
-                onClick={() => { setFilterRegion(''); setFilterProvince(''); setFilterPosition(''); setFilterAffiliation(''); }}
+                onClick={() => { setFilterRegion(''); setFilterProvince(''); setFilterPosition(''); setFilterAffiliation(''); setFilterDateFrom(''); setFilterDateTo(''); }}
                 className="mt-2 text-xs text-blue-600 hover:text-blue-800 underline"
               >
                 ล้างตัวกรองทั้งหมด
