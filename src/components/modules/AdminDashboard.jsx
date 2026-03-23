@@ -180,6 +180,15 @@ const AdminDashboard = () => {
     return sortAsc ? String(av).localeCompare(String(bv)) : String(bv).localeCompare(String(av));
   });
 
+  // Pagination for users
+  const [currentPage, setCurrentPage] = useState(1);
+  const ITEMS_PER_PAGE = 10;
+  const totalPages = Math.max(1, Math.ceil(sortedUsers.length / ITEMS_PER_PAGE));
+  const paginatedUsers = sortedUsers.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
+
+  // Reset page when filters change
+  useEffect(() => { setCurrentPage(1); }, [searchTerm, filterRegion, filterProvince, filterPosition, filterAffiliation]);
+
   const toggleSort = (field) => {
     if (sortField === field) setSortAsc(!sortAsc);
     else { setSortField(field); setSortAsc(true); }
@@ -537,11 +546,11 @@ const AdminDashboard = () => {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-100">
-                {sortedUsers.length === 0 ? (
+                {paginatedUsers.length === 0 ? (
                   <tr><td colSpan={9} className="px-3 py-8 text-center text-gray-400">ไม่พบข้อมูล</td></tr>
-                ) : sortedUsers.map((u, idx) => (
+                ) : paginatedUsers.map((u, idx) => (
                   <tr key={idx} className="hover:bg-blue-50/30">
-                    <td className="px-3 py-2 text-gray-400">{idx + 1}</td>
+                    <td className="px-3 py-2 text-gray-400">{(currentPage - 1) * ITEMS_PER_PAGE + idx + 1}</td>
                     <td className="px-3 py-2 text-gray-600 whitespace-nowrap">{u.date}</td>
                     <td className="px-3 py-2 font-medium text-gray-800">{u.prefix}{u.firstName} {u.lastName}</td>
                     <td className="px-3 py-2 text-blue-600">{u.email}</td>
@@ -555,6 +564,65 @@ const AdminDashboard = () => {
               </tbody>
             </table>
           </div>
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div className="flex items-center justify-between mt-3 px-1">
+              <p className="text-xs text-gray-500">
+                แสดง {(currentPage - 1) * ITEMS_PER_PAGE + 1}-{Math.min(currentPage * ITEMS_PER_PAGE, sortedUsers.length)} จาก {sortedUsers.length} รายการ
+              </p>
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={() => setCurrentPage(1)}
+                  disabled={currentPage === 1}
+                  className="px-2 py-1 text-xs rounded border border-gray-300 hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  «
+                </button>
+                <button
+                  onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                  disabled={currentPage === 1}
+                  className="px-2 py-1 text-xs rounded border border-gray-300 hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  ‹
+                </button>
+                {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                  let page;
+                  if (totalPages <= 5) {
+                    page = i + 1;
+                  } else if (currentPage <= 3) {
+                    page = i + 1;
+                  } else if (currentPage >= totalPages - 2) {
+                    page = totalPages - 4 + i;
+                  } else {
+                    page = currentPage - 2 + i;
+                  }
+                  return (
+                    <button
+                      key={page}
+                      onClick={() => setCurrentPage(page)}
+                      className={`px-2.5 py-1 text-xs rounded border ${currentPage === page ? 'bg-blue-600 text-white border-blue-600' : 'border-gray-300 hover:bg-gray-100'}`}
+                    >
+                      {page}
+                    </button>
+                  );
+                })}
+                <button
+                  onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                  disabled={currentPage === totalPages}
+                  className="px-2 py-1 text-xs rounded border border-gray-300 hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  ›
+                </button>
+                <button
+                  onClick={() => setCurrentPage(totalPages)}
+                  disabled={currentPage === totalPages}
+                  className="px-2 py-1 text-xs rounded border border-gray-300 hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  »
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       )}
 
@@ -565,6 +633,7 @@ const AdminDashboard = () => {
               <thead className="bg-gray-50">
                 <tr>
                   <th className="px-3 py-2 text-left font-bold text-gray-600">#</th>
+                  <th className="px-3 py-2 text-left font-bold text-gray-600">ชื่อ-นามสกุล</th>
                   <th className="px-3 py-2 text-left font-bold text-gray-600">วันที่</th>
                   <th className="px-3 py-2 text-left font-bold text-gray-600">เหตุการณ์</th>
                   <th className="px-3 py-2 text-left font-bold text-gray-600">รายละเอียด</th>
@@ -572,24 +641,30 @@ const AdminDashboard = () => {
               </thead>
               <tbody className="bg-white divide-y divide-gray-100">
                 {stats.length === 0 ? (
-                  <tr><td colSpan={4} className="px-3 py-8 text-center text-gray-400">ไม่พบข้อมูล</td></tr>
-                ) : [...stats].reverse().slice(0, 100).map((s, idx) => (
-                  <tr key={idx} className="hover:bg-blue-50/30">
-                    <td className="px-3 py-2 text-gray-400">{idx + 1}</td>
-                    <td className="px-3 py-2 text-gray-600 whitespace-nowrap">{s.date}</td>
-                    <td className="px-3 py-2">
-                      <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                        s.event === 'เข้าใช้งาน' ? 'bg-blue-100 text-blue-700' :
-                        s.event === 'ดาวน์โหลด' ? 'bg-green-100 text-green-700' :
-                        s.event === 'สร้างแผนฯ' ? 'bg-purple-100 text-purple-700' :
-                        'bg-gray-100 text-gray-700'
-                      }`}>
-                        {s.event}
-                      </span>
-                    </td>
-                    <td className="px-3 py-2 text-gray-600">{s.detail}</td>
-                  </tr>
-                ))}
+                  <tr><td colSpan={5} className="px-3 py-8 text-center text-gray-400">ไม่พบข้อมูล</td></tr>
+                ) : [...stats].reverse().slice(0, 100).map((s, idx) => {
+                  // Try to find matching user by date proximity
+                  const matchedUser = users.find((u) => u.date === s.date) || {};
+                  const displayName = (matchedUser.prefix || '') + (matchedUser.firstName || '') + ' ' + (matchedUser.lastName || '');
+                  return (
+                    <tr key={idx} className="hover:bg-blue-50/30">
+                      <td className="px-3 py-2 text-gray-400">{idx + 1}</td>
+                      <td className="px-3 py-2 font-medium text-gray-800">{displayName.trim() || '-'}</td>
+                      <td className="px-3 py-2 text-gray-600 whitespace-nowrap">{s.date}</td>
+                      <td className="px-3 py-2">
+                        <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                          s.event === 'เข้าใช้งาน' ? 'bg-blue-100 text-blue-700' :
+                          s.event === 'ดาวน์โหลด' ? 'bg-green-100 text-green-700' :
+                          s.event === 'สร้างแผนฯ' ? 'bg-purple-100 text-purple-700' :
+                          'bg-gray-100 text-gray-700'
+                        }`}>
+                          {s.event}
+                        </span>
+                      </td>
+                      <td className="px-3 py-2 text-gray-600">{s.detail}</td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
