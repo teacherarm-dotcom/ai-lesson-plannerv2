@@ -155,6 +155,49 @@ export async function exportAllUnitsDocx({
 }
 
 /**
+ * Generate Learning Outcomes docx from Template-lo.docx
+ *
+ * @param {object} params
+ * @param {object[]} params.loResults — [{unitName, outcome}]
+ * @param {string} params.courseCode — for filename
+ */
+export async function generateLoDocx({ loResults, courseCode }) {
+  if (!loResults?.length) throw new Error('ไม่พบข้อมูลผลลัพธ์การเรียนรู้');
+
+  const units = loResults.map((item, idx) => ({
+    unitName: item.unitName || `หน่วยที่ ${idx + 1}`,
+    outcome: item.outcome || '',
+  }));
+
+  const response = await fetch('/Template-lo.docx');
+  if (!response.ok) throw new Error('ไม่พบไฟล์ Template-lo.docx');
+  const arrayBuffer = await response.arrayBuffer();
+
+  const zip = new PizZip(arrayBuffer);
+  const doc = new Docxtemplater(zip, {
+    paragraphLoop: true,
+    linebreaks: true,
+    delimiters: { start: '{', end: '}' },
+  });
+
+  doc.setData({ units });
+
+  try {
+    doc.render();
+  } catch (err) {
+    console.error('LO docx render error:', err);
+    throw new Error('ไม่สามารถสร้างไฟล์ Word ได้: ' + (err.message || ''));
+  }
+
+  const out = doc.getZip().generate({
+    type: 'blob',
+    mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  });
+
+  saveAs(out, `ผลลัพธ์การเรียนรู้_${courseCode || 'export'}.docx`);
+}
+
+/**
  * Generate Job Analysis docx from template-job.docx
  *
  * @param {object} params

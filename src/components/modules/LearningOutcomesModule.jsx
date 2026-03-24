@@ -43,10 +43,17 @@ const LearningOutcomesModule = ({
     }
   };
 
-  const _doExportWord = () => {
+  const _doExportWord = async () => {
     if (!loResults) return;
-    const rows = loResults.map((item, idx) => `<tr><td style="text-align:center;">${idx + 1}</td><td>${item.unitName}</td><td>${item.outcome}</td></tr>`).join('');
-    createWordDoc(`ผลลัพธ์การเรียนรู้_${formData.courseCode}`, `<table><thead><tr><th width="10%">ที่</th><th width="30%">หน่วยการเรียนรู้</th><th>ผลลัพธ์การเรียนรู้ (Unit Learning Outcome)</th></tr></thead><tbody>${rows}</tbody></table>`);
+    try {
+      const { generateLoDocx } = await import('../../utils/docxTemplateExport');
+      await generateLoDocx({ loResults, courseCode: formData.courseCode });
+    } catch (err) {
+      console.error('LO docx export error:', err);
+      // Fallback to HTML .doc
+      const rows = loResults.map((item, idx) => `<tr><td style="text-align:center;">${idx + 1}</td><td>${item.unitName}</td><td>${item.outcome}</td></tr>`).join('');
+      createWordDoc(`ผลลัพธ์การเรียนรู้_${formData.courseCode}`, `<table><thead><tr><th width="10%">ที่</th><th width="30%">หน่วยการเรียนรู้</th><th>ผลลัพธ์การเรียนรู้ (Unit Learning Outcome)</th></tr></thead><tbody>${rows}</tbody></table>`);
+    }
   };
   const _meta = { module: 'ผลลัพธ์การเรียนรู้', courseCode: formData.courseCode || '', courseName: formData.courseName || '' };
   const exportWord = () => dl(_doExportWord, _meta);
