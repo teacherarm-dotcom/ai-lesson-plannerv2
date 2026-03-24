@@ -72,17 +72,21 @@ const CompetencyModule = ({
     }
   };
 
-  const _doExportWord = () => {
+  const _doExportWord = async () => {
     if (!compResults) return;
-    const rows = compResults.map((item, idx) => {
-      const comps = Array.isArray(item.competencies) ? item.competencies : [];
-      const list = comps.map((c) => `<li>${c}</li>`).join('');
-      return `<tr><td style="text-align:center;vertical-align:top;">${idx + 1}</td><td style="vertical-align:top;">${item.unitName || ''}</td><td style="vertical-align:top;"><ul style="margin:0;padding-left:20px;">${list}</ul></td></tr>`;
-    }).join('');
-    createWordDoc(
-      `สมรรถนะประจำหน่วย_${formData.courseCode || 'export'}`,
-      `<table><thead><tr><th width="10%">ที่</th><th width="30%">หน่วยการเรียนรู้</th><th>สมรรถนะประจำหน่วย</th></tr></thead><tbody>${rows}</tbody></table>`,
-    );
+    try {
+      const { generateCompDocx } = await import('../../utils/docxTemplateExport');
+      await generateCompDocx({ compResults, courseCode: formData.courseCode });
+    } catch (err) {
+      console.error('Comp docx export error:', err);
+      // Fallback
+      const rows = compResults.map((item, idx) => {
+        const comps = Array.isArray(item.competencies) ? item.competencies : [];
+        const list = comps.map((c) => `<li>${c}</li>`).join('');
+        return `<tr><td style="text-align:center;vertical-align:top;">${idx + 1}</td><td style="vertical-align:top;">${item.unitName || ''}</td><td style="vertical-align:top;"><ul style="margin:0;padding-left:20px;">${list}</ul></td></tr>`;
+      }).join('');
+      createWordDoc(`สมรรถนะประจำหน่วย_${formData.courseCode || 'export'}`, `<table><thead><tr><th width="10%">ที่</th><th width="30%">หน่วยการเรียนรู้</th><th>สมรรถนะประจำหน่วย</th></tr></thead><tbody>${rows}</tbody></table>`);
+    }
   };
   const _meta = { module: 'สมรรถนะประจำหน่วย', courseCode: formData.courseCode || '', courseName: formData.courseName || '' };
   const exportWord = () => dl(_doExportWord, _meta);

@@ -198,6 +198,98 @@ export async function generateLoDocx({ loResults, courseCode }) {
 }
 
 /**
+ * Generate Competency docx from template-com.docx
+ */
+export async function generateCompDocx({ compResults, courseCode }) {
+  if (!compResults?.length) throw new Error('ไม่พบข้อมูลสมรรถนะประจำหน่วย');
+
+  const units = compResults.map((item, idx) => ({
+    no: String(idx + 1),
+    unitName: item.unitName || `หน่วยที่ ${idx + 1}`,
+    competencies: Array.isArray(item.competencies)
+      ? item.competencies.join('\n')
+      : (item.competencies || ''),
+  }));
+
+  const response = await fetch('/template-com.docx');
+  if (!response.ok) throw new Error('ไม่พบไฟล์ template-com.docx');
+  const arrayBuffer = await response.arrayBuffer();
+
+  const zip = new PizZip(arrayBuffer);
+  const doc = new Docxtemplater(zip, {
+    paragraphLoop: true, linebreaks: true,
+    delimiters: { start: '{', end: '}' },
+  });
+
+  doc.setData({ units });
+
+  try { doc.render(); } catch (err) {
+    console.error('Comp docx render error:', err);
+    throw new Error('ไม่สามารถสร้างไฟล์ Word ได้: ' + (err.message || ''));
+  }
+
+  const out = doc.getZip().generate({
+    type: 'blob',
+    mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  });
+  saveAs(out, `สมรรถนะประจำหน่วย_${courseCode || 'export'}.docx`);
+}
+
+/**
+ * Generate Objectives docx from template-obj.docx
+ */
+export async function generateObjDocx({ objResults, courseCode }) {
+  if (!objResults?.length) throw new Error('ไม่พบข้อมูลจุดประสงค์เชิงพฤติกรรม');
+
+  const units = objResults.map((item, idx) => {
+    const cog = Array.isArray(item.cognitive) ? item.cognitive : [];
+    const psy = Array.isArray(item.psychomotor) ? item.psychomotor : [];
+    const aff = Array.isArray(item.affective) ? item.affective : [];
+    const app = Array.isArray(item.application) ? item.application : [];
+
+    const objectives = [
+      '4.1 พุทธิพิสัย',
+      ...cog,
+      '4.2 ทักษะพิสัย',
+      ...psy,
+      '4.3 จิตพิสัย',
+      ...aff,
+      '4.4 ความสามารถประยุกต์ใช้และรับผิดชอบ',
+      ...app,
+    ].join('\n');
+
+    return {
+      no: String(idx + 1),
+      unitName: item.unitName || `หน่วยที่ ${idx + 1}`,
+      objectives,
+    };
+  });
+
+  const response = await fetch('/template-obj.docx');
+  if (!response.ok) throw new Error('ไม่พบไฟล์ template-obj.docx');
+  const arrayBuffer = await response.arrayBuffer();
+
+  const zip = new PizZip(arrayBuffer);
+  const doc = new Docxtemplater(zip, {
+    paragraphLoop: true, linebreaks: true,
+    delimiters: { start: '{', end: '}' },
+  });
+
+  doc.setData({ units });
+
+  try { doc.render(); } catch (err) {
+    console.error('Obj docx render error:', err);
+    throw new Error('ไม่สามารถสร้างไฟล์ Word ได้: ' + (err.message || ''));
+  }
+
+  const out = doc.getZip().generate({
+    type: 'blob',
+    mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  });
+  saveAs(out, `จุดประสงค์เชิงพฤติกรรม_${courseCode || 'export'}.docx`);
+}
+
+/**
  * Generate Job Analysis docx from template-job.docx
  *
  * @param {object} params

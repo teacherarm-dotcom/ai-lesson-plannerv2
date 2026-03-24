@@ -62,12 +62,19 @@ const ObjectivesModule = ({
     return `<ul style="margin:0;padding-left:15px;">${list.map((i) => `<li>${i}</li>`).join('')}</ul>`;
   };
 
-  const _doExportWord = () => {
+  const _doExportWord = async () => {
     if (!objResults) return;
-    const rows = objResults.map((item, idx) =>
-      `<tr><td style="text-align:center;vertical-align:top;">${idx + 1}</td><td style="vertical-align:top;">${item.unitName}</td><td style="vertical-align:top;">${renderList(item.cognitive)}</td><td style="vertical-align:top;">${renderList(item.psychomotor)}</td><td style="vertical-align:top;">${renderList(item.affective)}</td><td style="vertical-align:top;">${renderList(item.application)}</td></tr>`
-    ).join('');
-    createWordDoc(`จุดประสงค์เชิงพฤติกรรม_${formData.courseCode}`, `<table><thead><tr><th rowspan="2">ที่</th><th rowspan="2">หน่วยการเรียนรู้</th><th colspan="4">จุดประสงค์เชิงพฤติกรรม</th></tr><tr><th>พุทธิพิสัย</th><th>ทักษะพิสัย</th><th>จิตพิสัย</th><th>การประยุกต์ใช้</th></tr></thead><tbody>${rows}</tbody></table>`);
+    try {
+      const { generateObjDocx } = await import('../../utils/docxTemplateExport');
+      await generateObjDocx({ objResults, courseCode: formData.courseCode });
+    } catch (err) {
+      console.error('Obj docx export error:', err);
+      // Fallback
+      const rows = objResults.map((item, idx) =>
+        `<tr><td style="text-align:center;vertical-align:top;">${idx + 1}</td><td style="vertical-align:top;">${item.unitName}</td><td style="vertical-align:top;">${renderList(item.cognitive)}</td><td style="vertical-align:top;">${renderList(item.psychomotor)}</td><td style="vertical-align:top;">${renderList(item.affective)}</td><td style="vertical-align:top;">${renderList(item.application)}</td></tr>`
+      ).join('');
+      createWordDoc(`จุดประสงค์เชิงพฤติกรรม_${formData.courseCode}`, `<table><thead><tr><th rowspan="2">ที่</th><th rowspan="2">หน่วยการเรียนรู้</th><th colspan="4">จุดประสงค์เชิงพฤติกรรม</th></tr><tr><th>พุทธิพิสัย</th><th>ทักษะพิสัย</th><th>จิตพิสัย</th><th>การประยุกต์ใช้</th></tr></thead><tbody>${rows}</tbody></table>`);
+    }
   };
   const _meta = { module: 'จุดประสงค์เชิงพฤติกรรม', courseCode: formData.courseCode || '', courseName: formData.courseName || '' };
   const exportWord = () => dl(_doExportWord, _meta);
