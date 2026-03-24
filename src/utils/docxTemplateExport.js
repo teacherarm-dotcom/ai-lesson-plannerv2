@@ -154,6 +154,90 @@ export async function exportAllUnitsDocx({
   await generateDocxFromTemplate(data, `แผนรายหน่วย_${formData.courseCode || 'export'}_หน่วยที่1`);
 }
 
+/**
+ * Generate Job Analysis docx from template-job.docx
+ *
+ * @param {object} params
+ * @param {string} params.learningOutcomes — ผลลัพธ์การเรียนรู้ระดับรายวิชา
+ * @param {string} params.generatedPlan — markdown table from AI
+ * @param {string} params.courseCode — for filename
+ */
+export async function generateJobAnalysisDocx({ learningOutcomes, generatedPlan, courseCode }) {
+  // 1. Parse the markdown analysis table into rows
+  const jobs = parseAnalysisTableToJobs(generatedPlan);
+
+  if (jobs.length === 0) {
+    throw new Error('ไม่พบข้อมูลตารางวิเคราะห์งาน');
+  }
+
+  // 2. Fetch template
+  const response = await fetch('/template-job.docx');
+  if (!response.ok) throw new Error('ไม่พบไฟล์ template-job.docx');
+  const arrayBuffer = await response.arrayBuffer();
+
+  // 3. Load + render
+  const zip = new PizZip(arrayBuffer);
+  const doc = new Docxtemplater(zip, {
+    paragraphLoop: true,
+    linebreaks: true,
+    delimiters: { start: '{', end: '}' },
+  });
+
+  doc.setData({
+    learningOutcomes: learningOutcomes || '',
+    jobs,
+  });
+
+  try {
+    doc.render();
+  } catch (err) {
+    console.error('Job Analysis docx render error:', err);
+    throw new Error('ไม่สามารถสร้างไฟล์ Word ได้: ' + (err.message || ''));
+  }
+
+  const out = doc.getZip().generate({
+    type: 'blob',
+    mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  });
+
+  saveAs(out, `ตารางวิเคราะห์งาน_${courseCode || 'export'}.docx`);
+}
+
+/**
+ * Parse the AI-generated markdown table into array of job objects for template loop.
+ * Each row becomes { duty, task, subComp, knowledge, skills }
+ */
+function parseAnalysisTableToJobs(markdown) {
+  if (!markdown) return [];
+  const clean = markdown.replace(/```markdown/g, '').replace(/```/g, '').trim();
+  const lines = clean.split('\n').map(l => l.trim()).filter(Boolean);
+  const sepIdx = lines.findIndex(l => l.startsWith('|') && l.includes('---'));
+  if (sepIdx === -1) return [];
+
+  const dataLines = lines.slice(sepIdx + 1).filter(l => l.startsWith('|'));
+
+  return dataLines.map(line => {
+    const cells = line.split('|').filter((c, i, arr) => i !== 0 && i !== arr.length - 1).map(c => c.trim());
+    return {
+      duty: cleanCellForDocx(cells[0] || ''),
+      task: cleanCellForDocx(cells[1] || ''),
+      subComp: cleanCellForDocx(cells[2] || ''),
+      knowledge: cleanCellForDocx(cells[3] || ''),
+      skills: cleanCellForDocx(cells[4] || ''),
+    };
+  });
+}
+
+/**
+ * Clean markdown cell content for docx output — convert <br> to newlines, strip **bold** markers
+ */
+function cleanCellForDocx(text) {
+  return text
+    .replace(/<br\s*\/?>/gi, '\n')
+    .replace(/\*\*/g, '')
+    .trim();
+}
+
 // --- Helper ---
 function parseRatio(ratio) {
   const match = ratio?.match(/(\d+)\s*[-–]\s*(\d+)/);

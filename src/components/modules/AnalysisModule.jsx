@@ -305,9 +305,20 @@ const AnalysisModule = ({
   const handleExportCurriculum = () => triggerDownload(_doExportCurriculumWord, { module: 'หลักสูตรรายวิชา', courseCode: formData.courseCode || '', courseName: formData.courseName || '' });
 
   // --- Export ---
-  const _doExportWord = () => {
+  const _doExportWord = async () => {
     if (!generatedPlan) return;
-    createWordDoc(`Job_Analysis_${formData.courseCode}`, convertMarkdownTableToHTML(generatedPlan));
+    try {
+      const { generateJobAnalysisDocx } = await import('../../utils/docxTemplateExport');
+      await generateJobAnalysisDocx({
+        learningOutcomes: formData.learningOutcomes || '',
+        generatedPlan,
+        courseCode: formData.courseCode || '',
+      });
+    } catch (err) {
+      console.error('Job Analysis docx export error:', err);
+      // Fallback to HTML export
+      createWordDoc(`Job_Analysis_${formData.courseCode}`, convertMarkdownTableToHTML(generatedPlan));
+    }
   };
   const _doSavePdf = () => {
     if (!generatedPlan) return;
