@@ -6,6 +6,8 @@ import { useFileUpload, buildFileParts } from '../../hooks/useFileUpload';
 import { useAiApi } from '../../hooks/useAiApi';
 import { SYSTEM_PROMPT_CONCEPT } from '../../constants/prompts';
 import { printToPdf, createWordDoc } from '../../utils/exportHelpers';
+import { generateDocxFromTemplate, buildTemplateData } from '../../utils/docxTemplateExport';
+import { parseUnitTable } from '../../utils/markdownTable';
 
 const STEPS = ['หลักสูตรรายวิชา', 'ผลการวิเคราะห์งาน', 'หน่วยการเรียนรู้', 'ผลลัพธ์การเรียนรู้', 'สมรรถนะประจำหน่วย', 'จุดประสงค์เชิงพฤติกรรม'];
 const FILE_KEYS = ['syllabus', 'analysis', 'units', 'outcomes', 'competencies', 'objectives'];
@@ -169,18 +171,32 @@ ${renderConcept(unit.concept)}
 </div>`).join('');
   };
 
-  const _doExportSummaryWord = () => {
-    const allUnits = mergeDataForExport();
-    console.log('[ConceptModule] Export Word — units:', allUnits.length, 'conceptResults:', conceptResults?.length, 'loResults:', loResults?.length, 'compResults:', compResults?.length, 'objResults:', objResults?.length);
-    if (allUnits.length === 0) {
+  const _doExportSummaryWord = async () => {
+    if (!loResults?.length) {
       onError?.('ไม่พบข้อมูลสำหรับสร้างเอกสาร กรุณาตรวจสอบว่าได้สร้างข้อมูลครบทุกขั้นตอนแล้ว');
       return;
     }
-    try {
-      createWordDoc(`แผนรายหน่วย_${formData.courseCode}`, buildUnitPlanHtml(allUnits));
-    } catch (err) {
-      console.error('[ConceptModule] Export Word error:', err);
-      onError?.(`เกิดข้อผิดพลาดในการสร้างไฟล์: ${err.message}`);
+
+    // Parse unit table for time data
+    const units = unitDivisionPlan ? parseUnitTable(unitDivisionPlan) : [];
+
+    // Generate one docx per unit using Template.docx
+    for (let i = 0; i < loResults.length; i++) {
+      try {
+        const data = buildTemplateData({
+          formData, loResults, compResults, objResults, conceptResults, units,
+          unitIndex: i,
+        });
+        await generateDocxFromTemplate(data, `แผนรายหน่วย_${formData.courseCode || ''}_หน่วยที่${i + 1}`);
+        // Small delay between downloads
+        if (i < loResults.length - 1) {
+          await new Promise(r => setTimeout(r, 500));
+        }
+      } catch (err) {
+        console.error(`[ConceptModule] Export unit ${i + 1} error:`, err);
+        onError?.(`เกิดข้อผิดพลาดในการสร้างไฟล์หน่วยที่ ${i + 1}: ${err.message}`);
+        return;
+      }
     }
   };
   const exportSummaryWord = () => dl(_doExportSummaryWord, _metaSummary);
