@@ -85,65 +85,88 @@ const ConceptModule = ({
     }));
   };
 
-  // --- Build unit plan HTML (template: แผนการจัดการเรียนรู้) ---
+  // --- Build unit plan HTML matching แผนรายหน่วย.docx template exactly ---
   const buildUnitPlanHtml = (allUnits) => {
     const fd = formData;
-    const rl = (list) => (!list?.length ? '<p style="margin-left:1cm;">-</p>' : list.map((i) => `<p style="margin-left:1cm;">${i}</p>`).join(''));
-    const conceptList = (text) => {
-      if (!text || text === '-') return '<p style="margin-left:1cm;">-</p>';
-      return text.split(/\n|<br\s*\/?>/).filter(l => l.trim()).map(l => `<p style="margin-left:1cm;">${l.replace(/^\d+\.\s*/, '').replace(/^[-•]\s*/, '').trim()}</p>`).join('');
+    // Style matching original docx: TH Sarabun New 16pt
+    const S = 'font-family:"TH Sarabun New",sans-serif;font-size:16pt;';
+    const SB = S + 'font-weight:bold;';
+    const indent = `style="${S}margin-left:1cm;"`;
+    const indent05 = `style="${S}margin-left:0.5cm;"`;
+    const dots = '………………………………………………………………………………………………………';
+
+    const renderList = (list) => {
+      if (!list?.length) return `<p ${indent}>${dots}</p>`;
+      return list.map((item) => `<p ${indent}>${item}</p>`).join('');
+    };
+
+    const renderConcept = (text) => {
+      if (!text || text === '-') return `<p ${indent}>${dots}</p>`;
+      const lines = text.split(/\n|<br\s*\/?>/).filter(l => l.trim());
+      return lines.map(l => `<p ${indent}>${l.replace(/^\d+\.\s*/, '').replace(/^[-•]\s*/, '').trim()}</p>`).join('');
     };
 
     return allUnits.map((unit, idx) => `
-      <div style="page-break-before:${idx > 0 ? 'always' : 'auto'};">
-        <h2 style="text-align:center;font-size:18pt;font-weight:bold;">แผนการจัดการเรียนรู้</h2>
-        <h3 style="text-align:center;font-size:16pt;">หน่วยที่ ${idx + 1}</h3>
-        <p>รหัสวิชา ${fd.courseCode || '...'} ชื่อวิชา ${fd.courseName || '...'}</p>
-        <p>ชื่อหน่วยการเรียนรู้ <b>${unit.unitName}</b></p>
-        <br/>
-        <p><b>1. ผลลัพธ์การเรียนรู้ระดับหน่วยการเรียน</b></p>
-        <p style="margin-left:1cm;">${unit.outcome || '-'}</p>
-        <br/>
-        <p><b>2. อ้างอิงมาตรฐาน/เชื่อมโยงกลุ่มอาชีพ</b></p>
-        <p style="margin-left:1cm;">${fd.standardRef || '-'}</p>
-        <br/>
-        <p><b>3. สมรรถนะประจำหน่วย</b></p>
-        ${rl(unit.competencies)}
-        <br/>
-        <p><b>4. จุดประสงค์เชิงพฤติกรรม</b></p>
-        <p style="margin-left:0.5cm;"><b>4.1 พุทธิพิสัย</b></p>
-        ${rl(unit.objectives?.cognitive)}
-        <p style="margin-left:0.5cm;"><b>4.2 ทักษะพิสัย</b></p>
-        ${rl(unit.objectives?.psychomotor)}
-        <p style="margin-left:0.5cm;"><b>4.3 จิตพิสัย</b></p>
-        ${rl(unit.objectives?.affective)}
-        <p style="margin-left:0.5cm;"><b>4.4 ความสามารถประยุกต์ใช้และรับผิดชอบ</b></p>
-        ${rl(unit.objectives?.application)}
-        <br/>
-        <p><b>5. สาระการเรียนรู้</b></p>
-        ${conceptList(unit.concept)}
-        <br/>
-        <p><b>6. กิจกรรมการเรียนรู้</b></p>
-        <p style="margin-left:1cm;">(คุณครูกำหนดเอง)</p>
-        <br/>
-        <p><b>7. สื่อและแหล่งการเรียนรู้</b></p>
-        <p style="margin-left:1cm;">(คุณครูกำหนดเอง)</p>
-        <br/>
-        <p><b>8. หลักฐานการเรียนรู้</b></p>
-        <p style="margin-left:0.5cm;">8.1 หลักฐานความรู้</p>
-        <p style="margin-left:1cm;">(คุณครูกำหนดเอง)</p>
-        <p style="margin-left:0.5cm;">8.2 หลักฐานการปฏิบัติงาน</p>
-        <p style="margin-left:1cm;">(คุณครูกำหนดเอง)</p>
-        <br/>
-        <p><b>9. การวัดและประเมินผล</b></p>
-        <p style="margin-left:0.5cm;">9.1 เกณฑ์การปฏิบัติงาน</p>
-        <p style="margin-left:1cm;">(คุณครูกำหนดเอง)</p>
-        <p style="margin-left:0.5cm;">9.2 วิธีการประเมิน</p>
-        <p style="margin-left:1cm;">(คุณครูกำหนดเอง)</p>
-        <p style="margin-left:0.5cm;">9.3 เครื่องมือที่ใช้ในการประเมิน</p>
-        <p style="margin-left:1cm;">(คุณครูกำหนดเอง)</p>
-      </div>
-    `).join('');
+<div style="page-break-before:${idx > 0 ? 'always' : 'auto'};">
+<p style="${SB}font-size:18pt;text-align:center;">แผนการจัดการเรียนรู้</p>
+<p style="${SB}font-size:16pt;text-align:center;">หน่วยที่ ${idx + 1} ${unit.unitName}</p>
+<p style="${S}">รหัสวิชา ${fd.courseCode || '...'} ชื่อวิชา ${fd.courseName || '...'}</p>
+
+<p style="${SB}">1. ผลลัพธ์การเรียนรู้ระดับหน่วยการเรียน</p>
+<p ${indent}>${unit.outcome || dots}</p>
+
+<p style="${SB}">2. อ้างอิงมาตรฐาน/เชื่อมโยงกลุ่มอาชีพ</p>
+<p ${indent05}>2.1 มาตรฐานอาชีพ.................................สมรรถนะย่อย............</p>
+<p ${indent}>1) เกณฑ์การปฏิบัติงาน....</p>
+<p ${indent}>2) วิธีประเมิน...................</p>
+<p ${indent}>3) หลักฐานการปฏิบัติงาน (Performance Evidence)</p>
+<p ${indent}>4) หลักฐานความรู้ (Knowledge Evidence)</p>
+<p ${indent05}>2.2 บูรณาการกลุ่มอาชีพ........................................</p>
+
+<p style="${SB}">3. สมรรถนะประจำหน่วย</p>
+${renderList(unit.competencies)}
+
+<p style="${SB}">4. จุดประสงค์เชิงพฤติกรรม</p>
+<p ${indent05}><b style="${S}">4.1 พุทธิพิสัย</b></p>
+${renderList(unit.objectives?.cognitive)}
+<p ${indent05}><b style="${S}">4.2 ทักษะพิสัย</b></p>
+${renderList(unit.objectives?.psychomotor)}
+<p ${indent05}><b style="${S}">4.3 จิตพิสัย</b></p>
+${renderList(unit.objectives?.affective)}
+<p ${indent05}><b style="${S}">4.4 ความสามารถประยุกต์ใช้และรับผิดชอบ</b></p>
+${renderList(unit.objectives?.application)}
+
+<p style="${SB}">5. สาระการเรียนรู้</p>
+${renderConcept(unit.concept)}
+
+<p style="${SB}">6. กิจกรรมการเรียนรู้</p>
+<p ${indent}>${dots}</p>
+
+<p style="${SB}">7. สื่อและแหล่งการเรียนรู้</p>
+<p ${indent}>${dots}</p>
+
+<p style="${SB}">8. หลักฐานการเรียนรู้</p>
+<p ${indent05}>8.1 หลักฐานความรู้</p>
+<p ${indent}>${dots}</p>
+<p ${indent05}>8.2 หลักฐานการปฏิบัติงาน</p>
+<p ${indent}>${dots}</p>
+
+<p style="${SB}">9. การวัดและประเมินผล</p>
+<p ${indent05}>9.1 เกณฑ์การปฏิบัติงาน</p>
+<p ${indent}>${dots}</p>
+<p ${indent05}>9.2 วิธีการประเมิน</p>
+<p ${indent}>${dots}</p>
+<p ${indent05}>9.3 เครื่องมือประเมิน</p>
+<p ${indent}>${dots}</p>
+
+<p style="${SB}">10. บันทึกผลหลังการจัดการเรียนรู้</p>
+<p ${indent05}>10.1 ข้อสรุปหลังการจัดการเรียนรู้</p>
+<p ${indent}>${dots}</p>
+<p ${indent05}>10.2 ปัญหาที่พบ</p>
+<p ${indent}>${dots}</p>
+<p ${indent05}>10.3 แนวทางแก้ปัญหา</p>
+<p ${indent}>${dots}</p>
+</div>`).join('');
   };
 
   const _doExportSummaryWord = () => {

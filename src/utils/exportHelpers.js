@@ -52,13 +52,14 @@ export const createWordDoc = (title, contentHtml) => {
   const fullHtml = `<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
 <head><meta charset='utf-8'><title>${title}</title>
 <style>
-  body { font-family: 'TH Sarabun New', sans-serif; }
-  table { border-collapse: collapse; width: 100%; }
+  body { font-family: 'TH Sarabun New', sans-serif; font-size: 16pt; line-height: 1.3; }
+  table { border-collapse: collapse; width: 100%; font-size: 16pt; }
   th, td { border: 1px solid black; padding: 5px; vertical-align: top; }
   th { background-color: #f2f2f2; }
+  p { margin: 2pt 0; }
 </style>
 </head>
-<body><h1>${title}</h1>${contentHtml}</body>
+<body>${contentHtml}</body>
 </html>`;
 
   const blob = new Blob(['\ufeff', fullHtml], { type: 'application/msword' });
