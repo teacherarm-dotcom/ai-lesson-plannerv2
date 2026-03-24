@@ -238,6 +238,94 @@ function cleanCellForDocx(text) {
     .trim();
 }
 
+/**
+ * Generate Unit Table docx from template-unit.docx
+ *
+ * @param {object} params
+ * @param {object} params.formData — course form data
+ * @param {string} params.unitDivisionPlan — markdown table of units
+ * @param {boolean} params.hasEvalRow — whether to include evaluation row
+ */
+export async function generateUnitTableDocx({ formData, unitDivisionPlan, hasEvalRow = true }) {
+  const { parseUnitTable } = await import('./markdownTable');
+  const parsedUnits = parseUnitTable(unitDivisionPlan);
+
+  if (parsedUnits.length === 0) {
+    throw new Error('ไม่พบข้อมูลตารางหน่วยการเรียนรู้');
+  }
+
+  const fd = formData || {};
+  const { theory, practice } = parseRatio(fd.ratio);
+
+  // Build units array for loop
+  const units = parsedUnits.map(u => ({
+    no: u.no || '',
+    name: u.name || '',
+    theory: u.theory || '0',
+    practice: u.practice || '0',
+    total: u.total || '0',
+  }));
+
+  // Calculate totals
+  let sumTheory = 0;
+  let sumPractice = 0;
+  let sumTotal = 0;
+  units.forEach(u => {
+    sumTheory += parseInt(u.theory) || 0;
+    sumPractice += parseInt(u.practice) || 0;
+    sumTotal += parseInt(u.total) || 0;
+  });
+
+  // Evaluation row (1 week)
+  const evalTheory = hasEvalRow ? String(theory) : '0';
+  const evalPractice = hasEvalRow ? String(practice) : '0';
+  const evalTotal = hasEvalRow ? String(theory + practice) : '0';
+
+  const evalT = hasEvalRow ? (parseInt(evalTheory) || 0) : 0;
+  const evalP = hasEvalRow ? (parseInt(evalPractice) || 0) : 0;
+
+  // Fetch template
+  const response = await fetch('/template-unit.docx');
+  if (!response.ok) throw new Error('ไม่พบไฟล์ template-unit.docx');
+  const arrayBuffer = await response.arrayBuffer();
+
+  const zip = new PizZip(arrayBuffer);
+  const doc = new Docxtemplater(zip, {
+    paragraphLoop: true,
+    linebreaks: true,
+    delimiters: { start: '{', end: '}' },
+  });
+
+  doc.setData({
+    courseCode: fd.courseCode || '',
+    courseName: fd.courseName || '',
+    theoryHours: String(theory),
+    practiceHours: String(practice),
+    credits: fd.credits || '',
+    units,
+    evalTheory,
+    evalPractice,
+    evalTotal,
+    totalTheory: String(sumTheory + evalT),
+    totalPractice: String(sumPractice + evalP),
+    totalAll: String(sumTotal + evalT + evalP),
+  });
+
+  try {
+    doc.render();
+  } catch (err) {
+    console.error('Unit table docx render error:', err);
+    throw new Error('ไม่สามารถสร้างไฟล์ Word ได้: ' + (err.message || ''));
+  }
+
+  const out = doc.getZip().generate({
+    type: 'blob',
+    mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  });
+
+  saveAs(out, `ตารางหน่วยการเรียนรู้_${fd.courseCode || 'export'}.docx`);
+}
+
 // --- Helper ---
 function parseRatio(ratio) {
   const match = ratio?.match(/(\d+)\s*[-–]\s*(\d+)/);

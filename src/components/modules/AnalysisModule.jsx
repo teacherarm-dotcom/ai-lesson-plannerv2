@@ -34,6 +34,7 @@ const AnalysisModule = ({
   const [standardContent, setStandardContent] = useState('');
   const [standardFileName, setStandardFileName] = useState('');
   const [dividingUnits, setDividingUnits] = useState(false);
+  const [hasEvalRow, setHasEvalRow] = useState(true);
   const { callApi, loading, loadingText } = useAiApi(providerId, apiKey);
 
   // Auto-generate unit division when returning to step 3 with plan but no units
@@ -324,11 +325,22 @@ const AnalysisModule = ({
     if (!generatedPlan) return;
     printToPdf(`ตารางวิเคราะห์หน่วยการเรียนรู้ (Job Analysis): ${formData.courseName}`, convertMarkdownTableToHTML(generatedPlan));
   };
-  const _doExportUnitsWord = () => {
+  const _doExportUnitsWord = async () => {
     if (!unitDivisionPlan) return;
-    const parsed = parseUnitTable(unitDivisionPlan);
-    const { rowsHtml, totalTheory, totalPractice, totalAll } = convertUnitTableToHTML(parsed);
-    createWordDoc(`ตารางหน่วยการเรียนรู้_${formData.courseCode}`, buildUnitExportHtml(rowsHtml, totalTheory, totalPractice, totalAll));
+    try {
+      const { generateUnitTableDocx } = await import('../../utils/docxTemplateExport');
+      await generateUnitTableDocx({
+        formData,
+        unitDivisionPlan,
+        hasEvalRow: hasEvalRow,
+      });
+    } catch (err) {
+      console.error('Unit table docx export error:', err);
+      // Fallback
+      const parsed = parseUnitTable(unitDivisionPlan);
+      const { rowsHtml, totalTheory, totalPractice, totalAll } = convertUnitTableToHTML(parsed);
+      createWordDoc(`ตารางหน่วยการเรียนรู้_${formData.courseCode}`, buildUnitExportHtml(rowsHtml, totalTheory, totalPractice, totalAll));
+    }
   };
   const _doExportUnitsPdf = () => {
     if (!unitDivisionPlan) return;
