@@ -79,19 +79,16 @@ export const useDownloadWithUserInfo = () => {
       setIsOpen(true);
     }
   };
-  const handleSubmit = (info) => {
+  const handleSubmit = async (info) => {
     setStoredUserInfo(info);
     logDownloadToSheet(info, pendingMeta);
     trackDownload();
     setIsOpen(false);
     if (pendingDownload) {
       try {
-        const result = pendingDownload();
-        if (result && typeof result.catch === 'function') {
-          result.catch(err => console.error('Download error:', err));
-        }
+        await pendingDownload();
       } catch (err) {
-        console.error('Download error:', err);
+        console.error('Download error after user info:', err);
       }
       setPendingDownload(null);
     }
