@@ -64,7 +64,15 @@ export const useDownloadWithUserInfo = () => {
     if (existing) {
       logDownloadToSheet(existing, meta);
       trackDownload();
-      downloadFn();
+      // Support both sync and async download functions
+      try {
+        const result = downloadFn();
+        if (result && typeof result.catch === 'function') {
+          result.catch(err => console.error('Download error:', err));
+        }
+      } catch (err) {
+        console.error('Download error:', err);
+      }
     } else {
       setPendingDownload(() => downloadFn);
       setPendingMeta(meta || null);
@@ -76,7 +84,17 @@ export const useDownloadWithUserInfo = () => {
     logDownloadToSheet(info, pendingMeta);
     trackDownload();
     setIsOpen(false);
-    if (pendingDownload) { pendingDownload(); setPendingDownload(null); }
+    if (pendingDownload) {
+      try {
+        const result = pendingDownload();
+        if (result && typeof result.catch === 'function') {
+          result.catch(err => console.error('Download error:', err));
+        }
+      } catch (err) {
+        console.error('Download error:', err);
+      }
+      setPendingDownload(null);
+    }
     setPendingMeta(null);
   };
   const handleClose = () => { setIsOpen(false); setPendingDownload(null); setPendingMeta(null); };
